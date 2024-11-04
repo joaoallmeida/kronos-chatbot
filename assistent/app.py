@@ -53,29 +53,31 @@ def sidebar_options(_conn) -> str:
         st.markdown('#')
         st.subheader('', divider='gray')
         with st.popover('Configurações', icon='⚙️', use_container_width=True):
+            
             language_options = {
                 '🇧🇷 Português': 'Português',
                 '🇺🇸 English': 'English'
             }
 
             model_options = {
-                "llama3-8b-8192": {"name": "llama3-8b-8192", "tokens": 1024, "temperature": 0.5, "developer": "Meta"},
-                "llama3-70b-8192": {"name": "llama3-70b-8192", "tokens": 1024, "temperature": 0.5, "developer": "Meta"},
-                "mixtral-8x7b-32768": {"name": "mixtral-8x7b-32768", "tokens": 32768, "temperature": 0.5, "developer": "Meta"},
-                "gemma-7b-it": {"name": "gemma-7b-it", "tokens": 1024, "temperature": 0.5, "developer": "Google"},
+                "llama3-8b-8192": {"name": "llama3-8b-8192", "tokens": 8192, "developer": "Meta"},
+                "llama3-70b-8192": {"name": "llama3-70b-8192", "tokens": 8192, "developer": "Meta"},
+                "mixtral-8x7b-32768": {"name": "mixtral-8x7b-32768", "tokens": 32768, "developer": "Meta"},
+                "gemma-7b-it": {"name": "gemma-7b-it", "tokens": 8192, "developer": "Google"},
             }
 
             selected_display = st.selectbox("Idioma", options=list(language_options.keys()))
             language_option = language_options[selected_display]
 
             selected_model = st.selectbox("Modelo", options=list(model_options.keys()))
-            model_option = model_options[selected_model]
+            temperature = st.slider('Temperatura',0.0,2.0,0.5)
+            max_tokens = st.slider('Max Tokens', 0, model_options[selected_model]["tokens"], 1024)
 
             options = {
                 'language': language_option,
-                'model': model_option['name'],
-                'max_tokens': model_option['tokens'],
-                'temperature': model_option['temperature']
+                'model': selected_model,
+                'max_tokens': max_tokens,
+                'temperature': temperature
             }
 
     return options
