@@ -7,9 +7,11 @@ import streamlit as st
 import time
 
 class Chatbot:
-    def __init__(self, conn, session_id:str, options:dict):
+    def __init__(self, conn, session_id:str):
         self.msgs = conn
         self.session_id = session_id
+
+        options = st.session_state.session_options
         self.language = options['language']
         self.model = options['model']
         self.temperature = options['temperature']

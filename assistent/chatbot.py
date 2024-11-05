@@ -3,14 +3,15 @@ from langchain_core.messages import HumanMessage
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.history import RunnableWithMessageHistory
-from dotenv import load_dotenv
 import streamlit as st
 import time
 
 class Chatbot:
-    def __init__(self, conn, session_id:str, options:dict):
+    def __init__(self, conn, session_id:str):
         self.msgs = conn
         self.session_id = session_id
+
+        options = st.session_state.session_options
         self.language = options['language']
         self.model = options['model']
         self.temperature = options['temperature']
@@ -75,4 +76,3 @@ class Chatbot:
             time.sleep(0.02)
 
         response_text.markdown(full_response)
-

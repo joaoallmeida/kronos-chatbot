@@ -5,12 +5,13 @@ import uuid
 def init_sessions():
     if "session_id" not in st.session_state:
         st.session_state.session_id = str(uuid.uuid4())
+    if 'session_options' not in st.session_state:
+        st.session_state.session_options = {}
+    return st.session_state.session_id
 
 def start_new_session():
-    st.session_state.session_id = str(uuid.uuid4())
-
-def set_current_session(session_id:str):
-    st.session_state.session_id = session_id
+    for key in st.session_state.keys():
+        del st.session_state[key]
 
 def set_timestamp_session(sessions:list):
     if 'timestamps' not in st.session_state:

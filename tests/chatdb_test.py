@@ -15,14 +15,13 @@ class ChatDbMessages(BaseChatMessageHistory):
         self.client = get_mongo_client()
         self.session_id = st.session_state.session_id
 
-        database = self.client['chat_history']
-        self.collection = database['message_store']
+        database = self.client['chat_history_test']
+        self.collection = database['message_store_test']
 
     @property
     def messages(self) -> List[BaseMessage]:
         try:
             session = self.collection.find({'session_id': self.session_id})
-
             if session:
                 results = [json.loads(data['history']) for data in session]
             else:
@@ -38,6 +37,7 @@ class ChatDbMessages(BaseChatMessageHistory):
             self.collection.insert_one({
                 'session_id': self.session_id,
                 'history': json.dumps(message_to_dict(message)),
+                'session_options': json.dumps(st.session_state.session_options),
                 'timestamp': datetime.now()
             })
 
@@ -47,21 +47,21 @@ class ChatDbMessages(BaseChatMessageHistory):
     def clear(self) -> None:
         self.collection.delete_many({'session_id': self.session_id})
 
-    def get_sessions_id(self):
-        # Dicionário para armazenar o session_id único com o timestamp mais recente
+    def get_previus_sessions(self):
         unique_sessions = {}
 
-        # Iterar sobre os resultados da consulta MongoDB ordenados pelo timestamp crescente
         for data in self.collection.find().sort('timestamp', ASCENDING):
             session_id = data['session_id']
             timestamp = data['timestamp']
 
-            # Se o session_id não estiver no dicionário, adicionar (o mais recente sempre é o primeiro a ser processado)
             if session_id not in unique_sessions:
                 unique_sessions[session_id] = timestamp
 
         # Retornar o session_id e timestamp únicos
-        return [{'session_id': session_id, 'timestamp': timestamp} for session_id, timestamp in unique_sessions.items()]
+        return [{'session_id': session_id, 'timestamp': timestamp} for session_id, session in unique_sessions.items()]
+
+    def get_previus_sessions_options(self, session_id:str) -> dict:
+        return [json.loads(data['session_options']) for data in self.collection.find({"session_id":session_id}).limit(1)][0]
 
     def get_message_history(self, session_id:str=None) -> List[BaseMessage]:
         if session_id:
@@ -74,23 +74,27 @@ class ChatDbMessages(BaseChatMessageHistory):
 # if __name__=="__main__":
 #     client = MongoClient(host='127.0.0.1', port=27017)
 
-#     database = client['chat_history']
-#     collection = database['message_store']
+#     database = client['chat_history_test']
+#     collection = database['message_store_test']
 
-#     result = [{data['session_id'] : data['timestamp']} for data in collection.find().sort('timestamp',-1)]
+#     result = [data['session_options'] for data in collection.find({"session_id":'19ae2da5-af6b-43bc-8509-cafcab2fc437'}).limit(1)]
 
-#     distinct_sessions = {}
+#     print(result)
 
-#     for item in result:
-#         for session_id, timestamp in item.items():
-#             # Se o session_id já existir, comparar os timestamps
-#             if session_id in distinct_sessions:
-#                 # Substitui o valor se o timestamp for mais recente
-#                 if timestamp > distinct_sessions[session_id]:
-#                     distinct_sessions[session_id] = timestamp
-#             else:
-#                 # Se não existe ainda, adiciona o session_id e o timestamp
-#                 distinct_sessions[session_id] = timestamp
+    # result = [{data['session_id'] : data['timestamp']} for data in collection.find().sort('timestamp',-1)]
 
-#     # Resultado final
-#     print([distinct_sessions])
+    # distinct_sessions = {}
+
+    # for item in result:
+    #     for session_id, timestamp in item.items():
+    #         # Se o session_id já existir, comparar os timestamps
+    #         if session_id in distinct_sessions:
+    #             # Substitui o valor se o timestamp for mais recente
+    #             if timestamp > distinct_sessions[session_id]:
+    #                 distinct_sessions[session_id] = timestamp
+    #         else:
+    #             # Se não existe ainda, adiciona o session_id e o timestamp
+    #             distinct_sessions[session_id] = timestamp
+
+    # # Resultado final
+    # print([distinct_sessions])

@@ -22,7 +22,6 @@ class ChatDbMessages(BaseChatMessageHistory):
     def messages(self) -> List[BaseMessage]:
         try:
             session = self.collection.find({'session_id': self.session_id})
-
             if session:
                 results = [json.loads(data['history']) for data in session]
             else:
@@ -38,6 +37,7 @@ class ChatDbMessages(BaseChatMessageHistory):
             self.collection.insert_one({
                 'session_id': self.session_id,
                 'history': json.dumps(message_to_dict(message)),
+                'session_options': json.dumps(st.session_state.session_options),
                 'timestamp': datetime.now()
             })
 
@@ -47,7 +47,7 @@ class ChatDbMessages(BaseChatMessageHistory):
     def clear(self) -> None:
         self.collection.delete_many({'session_id': self.session_id})
 
-    def get_sessions_id(self):
+    def get_previus_sessions(self):
         unique_sessions = {}
 
         for data in self.collection.find().sort('timestamp', ASCENDING):
@@ -57,7 +57,11 @@ class ChatDbMessages(BaseChatMessageHistory):
             if session_id not in unique_sessions:
                 unique_sessions[session_id] = timestamp
 
-        return [{'session_id': session_id, 'timestamp': timestamp} for session_id, timestamp in unique_sessions.items()]
+        # Retornar o session_id e timestamp únicos
+        return [{'session_id': session_id, 'timestamp': timestamp} for session_id, session in unique_sessions.items()]
+
+    def get_previus_sessions_options(self, session_id:str) -> dict:
+        return [json.loads(data['session_options']) for data in self.collection.find({"session_id":session_id}).limit(1)][0]
 
     def get_message_history(self, session_id:str=None) -> List[BaseMessage]:
         if session_id:
@@ -66,4 +70,3 @@ class ChatDbMessages(BaseChatMessageHistory):
             result = [json.loads(data['history']) for data in self.collection.find()]
 
         return messages_from_dict(result)
-

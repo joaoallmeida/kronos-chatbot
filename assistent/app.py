@@ -2,43 +2,78 @@ from chatdb import ChatDbMessages
 from chatbot import Chatbot
 from sessions import *
 
+def get_default_settings(is_connected):
+
+    MODEL_OPTIONS = {
+        "llama3-8b-8192": {"name": "llama3-8b-8192", "tokens": 8192, "developer": "Meta"},
+        "llama3-70b-8192": {"name": "llama3-70b-8192", "tokens": 8192, "developer": "Meta"},
+        "mixtral-8x7b-32768": {"name": "mixtral-8x7b-32768", "tokens": 32768, "developer": "Meta"},
+        "gemma-7b-it": {"name": "gemma-7b-it", "tokens": 8192, "developer": "Google"},
+    }
+
+    if is_connected:
+        return {
+            "disabled": True,
+            "language_options": [st.session_state.session_options['language']],
+            "temperature_default": float(st.session_state.session_options['temperature']),
+            "max_token_default": int(st.session_state.session_options['max_tokens']),
+            "model_options": {
+                st.session_state.session_options['model']: {
+                    "name": st.session_state.session_options['model'],
+                    "tokens": MODEL_OPTIONS[st.session_state.session_options['model']]['tokens']
+                }
+            }
+        }
+    else:
+        return {
+            "disabled": False,
+            "language_options": ['Português', 'English'],
+            "temperature_default": 0.5,
+            "max_token_default": 1024,
+            "model_options": MODEL_OPTIONS
+        }
+
 def mask_text(text: str) -> str:
     return text[:30] + "..." if len(text) > 30 else text
 
-# Atualiza timestamp e define a sessão atual
-def update_timestamp(session_id):
+def update_timestamp(session_id, options):
     st.session_state.timestamps[session_id] = datetime.now()
     st.session_state.session_id = session_id
+    st.session_state.session_options = options
 
-# Verifica se a sessão é ativa para desabilitar o botão correspondente
-def create_session_button(session_id, label):
+def create_session_button(session_id, options, label):
+    # Verifica se a sessão é ativa para desabilitar o botão correspondente
     disabled = (st.session_state.get("session_id") == session_id)
     st.button(
         label=label,
         key=f"btn-{session_id}",
         on_click=update_timestamp,
-        args=(session_id,),
+        args=(session_id, options,),
         disabled=disabled,
         use_container_width=True
     )
 
 def display_previous_sessions(_conn):
     try:
-        sessions = _conn.get_sessions_id()  # Obtem IDs das sessões
-        sessions = set_timestamp_session(sessions)  # Ordena por timestamp
+        sessions = _conn.get_previus_sessions()  # Obtem IDs das sessões
+        sessions_ord = set_timestamp_session(sessions)  # Ordena por timestamp
 
-        for session_data in sessions:
+        for session_data in sessions_ord:
             session_id = session_data['session_id']
             result = _conn.get_message_history(session_id=session_id)
+            options = _conn.get_previus_sessions_options(session_id=session_id)
 
             if result:
                 label = mask_text(result[0].content)
-                create_session_button(session_id, label)
+                create_session_button(session_id, options, label)
 
     except Exception as e:
         raise e
 
-def sidebar_options(_conn) -> str:
+def sidebar_options(_conn, session_id) -> None:
+
+    settings = get_default_settings(_conn.messages)
+
     with st.sidebar:
 
         st.button('Nova Conversa', icon="➕", on_click=start_new_session, use_container_width=True)
@@ -53,46 +88,30 @@ def sidebar_options(_conn) -> str:
         st.markdown('#')
         st.subheader('', divider='gray')
         with st.popover('Configurações', icon='⚙️', use_container_width=True):
-            
-            language_options = {
-                '🇧🇷 Português': 'Português',
-                '🇺🇸 English': 'English'
-            }
 
-            model_options = {
-                "llama3-8b-8192": {"name": "llama3-8b-8192", "tokens": 8192, "developer": "Meta"},
-                "llama3-70b-8192": {"name": "llama3-70b-8192", "tokens": 8192, "developer": "Meta"},
-                "mixtral-8x7b-32768": {"name": "mixtral-8x7b-32768", "tokens": 32768, "developer": "Meta"},
-                "gemma-7b-it": {"name": "gemma-7b-it", "tokens": 8192, "developer": "Google"},
-            }
+            language_option = st.selectbox("Idioma", options=settings["language_options"], key=f'lang-{session_id}', disabled=settings["disabled"])
+            selected_model = st.selectbox("Modelo", options=list(settings["model_options"].keys()), key=f'model-{session_id}', disabled=settings["disabled"])
+            temperature = st.slider('Temperatura', 0.0, 2.0, settings["temperature_default"], key=f'temp-{session_id}', disabled=settings["disabled"])
+            max_tokens = st.slider('Max Tokens', 0, settings["model_options"][selected_model]["tokens"], settings["max_token_default"], key=f'tokens-{session_id}', disabled=settings["disabled"])
 
-            selected_display = st.selectbox("Idioma", options=list(language_options.keys()))
-            language_option = language_options[selected_display]
-
-            selected_model = st.selectbox("Modelo", options=list(model_options.keys()))
-            temperature = st.slider('Temperatura',0.0,2.0,0.5)
-            max_tokens = st.slider('Max Tokens', 0, model_options[selected_model]["tokens"], 1024)
-
-            options = {
-                'language': language_option,
-                'model': selected_model,
-                'max_tokens': max_tokens,
-                'temperature': temperature
-            }
-
-    return options
+        st.session_state.session_options = {
+            'language': language_option,
+            'model': selected_model,
+            'max_tokens': max_tokens,
+            'temperature': temperature
+        }
 
 def main():
     try:
         st.set_page_config(page_title='Kronos Bot', page_icon='💬')
-        st.markdown("<h1 style='text-align:center; color: white'><img width='60' height='60' src='https://img.icons8.com/isometric/60/bot.png'/> Kronos Assistent </h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align:center; color: white'><img width='60' height='60' src='https://img.icons8.com/isometric/60/bot.png'/> Kronos Assistent</h1>", unsafe_allow_html=True)
         st.subheader("", divider='rainbow', anchor=False)
 
         session_id = init_sessions()
 
         conn = ChatDbMessages()
-        options = sidebar_options(conn)
-        bot = Chatbot(conn, session_id, options)
+        sidebar_options(conn, session_id)
+        bot = Chatbot(conn, session_id)
 
         for msg in conn.messages:
             st.chat_message(msg.type).write(msg.content)
