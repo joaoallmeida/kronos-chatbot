@@ -1,9 +1,13 @@
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters.character import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
 from chatdb_test import ChatDbMessages
 from chatbot_test import Chatbot
 from sessions_test import *
 
 def get_default_settings(is_connected):
-
     MODEL_OPTIONS = {
         "llama3-8b-8192": {"name": "llama3-8b-8192", "tokens": 8192, "developer": "Meta"},
         "llama3-70b-8192": {"name": "llama3-70b-8192", "tokens": 8192, "developer": "Meta"},
@@ -36,7 +40,7 @@ def get_default_settings(is_connected):
 def mask_text(text: str) -> str:
     return text[:30] + "..." if len(text) > 30 else text
 
-def update_timestamp(session_id, options):
+def update_session(session_id, options):
     st.session_state.timestamps[session_id] = datetime.now()
     st.session_state.session_id = session_id
     st.session_state.session_options = options
@@ -47,7 +51,7 @@ def create_session_button(session_id, options, label):
     st.button(
         label=label,
         key=f"btn-{session_id}",
-        on_click=update_timestamp,
+        on_click=update_session,
         args=(session_id, options,),
         disabled=disabled,
         use_container_width=True
@@ -70,29 +74,34 @@ def display_previous_sessions(_conn):
     except Exception as e:
         raise e
 
-def sidebar_options(_conn, session_id) -> None:
+def load_documents(file_path):
+    try:
+        loader = PyPDFLoader(file_path)
+        documents = loader.load()
+
+        embeddings = HuggingFaceEmbeddings()
+        text_splitter = RecursiveCharacterTextSplitter( chunk_size=1000, chunk_overlap=200 )
+        docs = text_splitter.split_documents(documents)
+        vectorstores = FAISS.from_documents(docs, embeddings)
+    except Exception as e:
+        raise e
+
+    return vectorstores.as_retriever()
+
+def sidebar_options(_conn, session_id) -> str:
 
     settings = get_default_settings(_conn.messages)
 
     with st.sidebar:
-
         st.button('Nova Conversa', icon="➕", on_click=start_new_session, use_container_width=True)
-        st.button("Limpar Conversa", icon="❌", on_click=_conn.clear, use_container_width=True)
-        st.markdown('###')
-        st.subheader('Recentes', divider='gray')
+        st.button("Deletar Conversa", icon="❌", on_click=_conn.clear, use_container_width=True)
 
-        with st.container(height=400, border=False):
-            display_previous_sessions(_conn)
-
-        st.markdown('#')
-        st.markdown('#')
-        st.subheader('', divider='gray')
         with st.popover('Configurações', icon='⚙️', use_container_width=True):
-
             language_option = st.selectbox("Idioma", options=settings["language_options"], key=f'lang-{session_id}', disabled=settings["disabled"])
             selected_model = st.selectbox("Modelo", options=list(settings["model_options"].keys()), key=f'model-{session_id}', disabled=settings["disabled"])
             temperature = st.slider('Temperatura', 0.0, 2.0, settings["temperature_default"], key=f'temp-{session_id}', disabled=settings["disabled"])
             max_tokens = st.slider('Max Tokens', 0, settings["model_options"][selected_model]["tokens"], settings["max_token_default"], key=f'tokens-{session_id}', disabled=settings["disabled"])
+            uploaded_file = st.file_uploader('Adicionar Arquivo', key=f"file-{session_id}", disabled=settings["disabled"])
 
         st.session_state.session_options = {
             'language': language_option,
@@ -101,10 +110,26 @@ def sidebar_options(_conn, session_id) -> None:
             'temperature': temperature
         }
 
+        st.markdown('###')
+        st.subheader('Recentes', divider='gray')
+        display_previous_sessions(_conn)
+
+        if uploaded_file:
+
+            file_path = f"/tmp/{uploaded_file.name}"
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            if "uploaded_file_path" not in st.session_state:
+                st.session_state.uploaded_file_path = file_path
+
+            if "retriever" not in st.session_state:
+                st.session_state.retriever = load_documents(st.session_state.uploaded_file_path)
+
 def main():
     try:
         st.set_page_config(page_title='Kronos Bot', page_icon='💬')
-        st.markdown("<h1 style='text-align:center; color: white'><img width='60' height='60' src='https://img.icons8.com/isometric/60/bot.png'/> Kronos Assistent</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align:center;'><img width='60' height='60' src='https://img.icons8.com/isometric/60/bot.png'/> Kronos Assistent</h1>", unsafe_allow_html=True)
         st.subheader("", divider='rainbow', anchor=False)
 
         session_id = init_sessions()

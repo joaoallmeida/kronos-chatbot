@@ -7,6 +7,10 @@ def init_sessions():
         st.session_state.session_id = str(uuid.uuid4())
     if 'session_options' not in st.session_state:
         st.session_state.session_options = {}
+    if "retriever" not in st.session_state:
+        st.session_state.retriever = None
+    if "uploaded_file_path" not in st.session_state:
+        st.session_state.uploaded_file_path = None
     return st.session_state.session_id
 
 def start_new_session():
