@@ -2,17 +2,14 @@ from datetime import datetime
 from typing import List
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import BaseMessage, messages_from_dict, message_to_dict
-from pymongo import MongoClient, ASCENDING
+from pymongo import DESCENDING, MongoClient
 import json
 import streamlit as st
 
-@staticmethod
-def get_mongo_client():
-    return MongoClient(host='mongodb', port=27017)
 
 class ChatDbMessages(BaseChatMessageHistory):
     def __init__(self):
-        self.client = get_mongo_client()
+        self.client = MongoClient(host='mongodb', port=27017)
         self.session_id = st.session_state.session_id
 
         database = self.client['chat_history']
@@ -50,7 +47,7 @@ class ChatDbMessages(BaseChatMessageHistory):
     def get_previus_sessions(self):
         unique_sessions = {}
 
-        for data in self.collection.find().sort('timestamp', ASCENDING):
+        for data in self.collection.find().sort('timestamp', DESCENDING):
             session_id = data['session_id']
             timestamp = data['timestamp']
 

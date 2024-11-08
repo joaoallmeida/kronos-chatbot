@@ -6,13 +6,10 @@ from pymongo import MongoClient, ASCENDING
 import json
 import streamlit as st
 
-@staticmethod
-def get_mongo_client():
-    return MongoClient(host='127.0.0.1', port=27017)
 
 class ChatDbMessages(BaseChatMessageHistory):
     def __init__(self):
-        self.client = get_mongo_client()
+        self.client = MongoClient(host='127.0.0.1', port=27017)
         self.session_id = st.session_state.session_id
 
         database = self.client['chat_history_test']

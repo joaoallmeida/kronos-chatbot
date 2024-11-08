@@ -44,71 +44,47 @@ class Chatbot:
 
         return ChatPromptTemplate.from_template(template)
 
-    def create_chain(self, retriever=None):
+    def create_chain(self, retriever) -> RunnableWithMessageHistory:
         try:
             llm = ChatGroq(model=self.model, temperature=self.temperature, max_tokens=self.max_tokens, streaming=True)
 
             if retriever:
                 question_answer_chain = create_stuff_documents_chain(llm, self.get_prompt())
                 base_chain = create_retrieval_chain(retriever, question_answer_chain)
-                chain = RunnableWithMessageHistory(
-                    base_chain,
-                    lambda session_id: self.conn,
-                    input_messages_key='question',
-                    history_messages_key="chat_history",
-                    output_messages_key="answer",
-                )
-
             else:
                 base_chain = self.get_prompt() | llm | StrOutputParser()
-                chain = RunnableWithMessageHistory(
-                    base_chain,
-                    lambda session_id: self.conn,
-                    input_messages_key='question',
-                    history_messages_key="chat_history",
-                )
 
         except Exception as e:
             raise e
 
-        return chain
+        return RunnableWithMessageHistory(
+                    base_chain,
+                    lambda session_id: self.conn,
+                    input_messages_key='question',
+                    history_messages_key="chat_history",
+                )
 
-    def bot_response(self, prompt:str):
+    def process_reponse(self, prompt:str, retriever:bool) -> None:
+        chain = self.create_chain(st.session_state.retriever if retriever else None)
+        response = chain.stream( {
+                    "question": prompt,
+                    "language": self.language,
+                    "context": None if not retriever else {}
+                } , config={"configurable": {"session_id": self.session_id } } )
 
+        response_container = st.chat_message("assistant")
+        response_text = response_container.empty()
+        assistant_message = ''
+
+        for content in response:
+            assistant_message += content
+            response_text.markdown(assistant_message + "█ ")
+            time.sleep(0.02)
+
+        response_text.markdown(assistant_message)
+
+    def bot_response(self, prompt:str) -> None:
         if st.session_state.retriever is not None:
-            chain = self.create_chain(st.session_state.retriever)
-            response = chain.stream( {
-                        "question": prompt,
-                        "language": self.language
-                    } , config={"configurable": {"session_id": self.session_id } } )
-
-            response_container = st.chat_message("assistant")
-            response_text = response_container.empty()
-            full_response = ''
-
-            for content in response:
-                if answer_content := content.get("answer"):
-                    full_response += str(answer_content)
-                    response_text.markdown(full_response + "█ ")
-                    time.sleep(0.02)
-
-            response_text.markdown(full_response)
-
+            self.process_reponse(prompt, True)
         else:
-            chain = self.create_chain()
-            response = chain.stream( {
-                        "question": prompt,
-                        "context": None,
-                        "language": self.language
-                    } , config={"configurable": {"session_id": self.session_id } } )
-
-            response_container = st.chat_message("assistant")
-            response_text = response_container.empty()
-            full_response = ''
-
-            for content in response:
-                full_response += content
-                response_text.markdown(full_response + "█ ")
-                time.sleep(0.02)
-
-            response_text.markdown(full_response)
+            self.process_reponse(prompt, False)

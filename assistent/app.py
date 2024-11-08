@@ -4,45 +4,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from PyPDF2 import PdfReader
 from chatdb import ChatDbMessages
 from chatbot import Chatbot
-from sessions import *
+from utils import *
 
-def get_default_settings(is_connected):
-    MODEL_OPTIONS = {
-        "llama3-8b-8192": {"name": "llama3-8b-8192", "tokens": 8192, "developer": "Meta"},
-        "llama3-70b-8192": {"name": "llama3-70b-8192", "tokens": 8192, "developer": "Meta"},
-        "mixtral-8x7b-32768": {"name": "mixtral-8x7b-32768", "tokens": 32768, "developer": "Meta"},
-        "gemma-7b-it": {"name": "gemma-7b-it", "tokens": 8192, "developer": "Google"},
-    }
-
-    if is_connected:
-        return {
-            "disabled": True,
-            "language_options": [st.session_state.session_options['language']],
-            "temperature_default": float(st.session_state.session_options['temperature']),
-            "max_token_default": int(st.session_state.session_options['max_tokens']),
-            "model_options": {
-                st.session_state.session_options['model']: {
-                    "name": st.session_state.session_options['model'],
-                    "tokens": MODEL_OPTIONS[st.session_state.session_options['model']]['tokens']
-                }
-            }
-        }
-    else:
-        return {
-            "disabled": False,
-            "language_options": ['Português', 'English'],
-            "temperature_default": 0.5,
-            "max_token_default": 1024,
-            "model_options": MODEL_OPTIONS
-        }
-
-def mask_text(text: str) -> str:
-    return text[:30] + "..." if len(text) > 30 else text
-
-def update_session(session_id, options):
-    st.session_state.timestamps[session_id] = datetime.now()
-    st.session_state.session_id = session_id
-    st.session_state.session_options = options
 
 def create_session_button(session_id, options, label):
     # Verifica se a sessão é ativa para desabilitar o botão correspondente
