@@ -16,6 +16,7 @@ class Chatbot:
         self.max_tokens = options['max_tokens']
         self.conn = conn
         self.session_id = session_id
+        self.llm = ChatGroq(model=self.model, temperature=self.temperature, max_tokens=self.max_tokens, streaming=True)
 
     def get_prompt(self) -> ChatPromptTemplate:
         template = """
@@ -38,38 +39,65 @@ class Chatbot:
 
         Context: {context}
 
-        Question: {question}
+        Input: {input}
 
         Output:"""
 
         return ChatPromptTemplate.from_template(template)
 
-    def create_chain(self, retriever) -> RunnableWithMessageHistory:
-        try:
-            llm = ChatGroq(model=self.model, temperature=self.temperature, max_tokens=self.max_tokens, streaming=True)
-
-            if retriever:
-                question_answer_chain = create_stuff_documents_chain(llm, self.get_prompt())
-                base_chain = create_retrieval_chain(retriever, question_answer_chain)
-            else:
-                base_chain = self.get_prompt() | llm | StrOutputParser()
-
+    def create_chain_qa(self, retriever) -> RunnableWithMessageHistory:
+        try:            
+            question_answer_chain = create_stuff_documents_chain(self.llm, self.get_prompt())
+            base_chain = create_retrieval_chain(retriever, question_answer_chain)
         except Exception as e:
             raise e
 
         return RunnableWithMessageHistory(
                     base_chain,
                     lambda session_id: self.conn,
-                    input_messages_key='question',
+                    input_messages_key='input',
+                    history_messages_key="chat_history",
+                    output_messages_key='answer',
+                )
+
+    def process_reponse_qa(self, prompt:str) -> None:
+        chain = self.create_chain_qa(st.session_state.retriever)
+        response = chain.stream( {
+                    "input": prompt,
+                    "language": self.language,
+                } , config={"configurable": {"session_id": self.session_id } } )
+
+        response_container = st.chat_message("assistant")
+        response_text = response_container.empty()
+        assistant_message = ''
+
+        for content in response:
+            if 'answer' in content:
+                assistant_message += str(content['answer'])
+            
+            response_text.markdown(assistant_message + "█ ")
+            time.sleep(0.02)
+            
+        response_text.markdown(assistant_message)
+        
+    def create_chain(self) -> RunnableWithMessageHistory:
+        try:            
+            base_chain = self.get_prompt() | self.llm | StrOutputParser()
+        except Exception as e:
+            raise e
+        return RunnableWithMessageHistory(
+                    base_chain,
+                    lambda session_id: self.conn,
+                    input_messages_key='input',
                     history_messages_key="chat_history",
                 )
 
-    def process_response(self, prompt:str, retriever:bool) -> None:
-        chain = self.create_chain(st.session_state.retriever if retriever else None)
+    def process_reponse(self, prompt:str) -> None:
+        chain = self.create_chain()
         response = chain.stream( {
-                    "question": prompt,
+                    "input": prompt,
                     "language": self.language,
-                    "context": None if not retriever else {}
+                    "context": None
                 } , config={"configurable": {"session_id": self.session_id } } )
 
         response_container = st.chat_message("assistant")
@@ -80,11 +108,11 @@ class Chatbot:
             assistant_message += content
             response_text.markdown(assistant_message + "█ ")
             time.sleep(0.02)
-
+            
         response_text.markdown(assistant_message)
 
     def bot_response(self, prompt:str) -> None:
         if st.session_state.retriever is not None:
-            self.process_response(prompt, True)
+            self.process_reponse_qa(prompt)
         else:
-            self.process_response(prompt, False)
+            self.process_reponse(prompt)

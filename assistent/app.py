@@ -1,11 +1,10 @@
 from langchain_text_splitters.character import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from PyPDF2 import PdfReader
+from langchain_community.document_loaders import PyPDFLoader
 from chatdb import ChatDbMessages
 from chatbot import Chatbot
 from utils import *
-
 
 def create_session_button(session_id, options, label):
     # Verifica se a sessão é ativa para desabilitar o botão correspondente
@@ -38,16 +37,13 @@ def display_previous_sessions(_conn):
 
 def load_documents(file_path):
     try:
-        pdf_reader = PdfReader(file_path)
+        loader = PyPDFLoader(file_path)
+        text = loader.lazy_load()
 
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text()
-
-        embeddings = HuggingFaceEmbeddings()
+        embeddings = HuggingFaceEmbeddings(model_name='BAAI/bge-base-en-v1.5', model_kwargs={'device': 'cpu'}, encode_kwargs={'normalize_embeddings': True})
         text_splitter = RecursiveCharacterTextSplitter( chunk_size=1000, chunk_overlap=200 )
-        docs = text_splitter.split_text(text)
-        vectorstores = FAISS.from_texts(docs, embeddings)
+        docs = text_splitter.split_documents(text)
+        vectorstores = FAISS.from_documents(docs, embeddings)
 
     except Exception as e:
         raise e
@@ -82,10 +78,14 @@ def sidebar_options(_conn, session_id) -> str:
 
         if uploaded_file:
 
-            if "uploaded_file" not in st.session_state:
-                st.session_state.uploaded_file = uploaded_file
+            file_path = f"/tmp/{uploaded_file.name}"
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
 
-            if "retriever" not in st.session_state:
+            if st.session_state.uploaded_file is None :
+                st.session_state.uploaded_file = file_path
+
+            if st.session_state.retriever is None :
                 st.session_state.retriever = load_documents(st.session_state.uploaded_file)
 
 def main():

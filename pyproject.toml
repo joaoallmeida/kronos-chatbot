@@ -6,7 +6,7 @@ authors = ["joaoallmeida <joaoallmeida96@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = ">=3.12,<3.13"
 langchain-core = "^0.3.8"
 langchain = "^0.3.2"
 langchain-groq = "^0.2.0"
@@ -18,7 +18,7 @@ pymongo = {extras = ["srv"], version = "^4.10.1"}
 faiss-cpu = "^1.9.0"
 sentence-transformers = "^3.2.1"
 langchain-huggingface = "^0.1.2"
-pypdf2 = "^3.0.1"
+pypdf = "^5.1.0"
 
 
 [build-system]
