@@ -38,7 +38,7 @@ class Chatbot:
 
         Context: {context}
 
-        Input: {input}
+        Question: {question}
 
         Output:"""
 
@@ -54,7 +54,7 @@ class Chatbot:
                 chain = RunnableWithMessageHistory(
                     base_chain,
                     lambda session_id: self.conn,
-                    input_messages_key='input',
+                    input_messages_key='question',
                     history_messages_key="chat_history",
                     output_messages_key="answer",
                 )
@@ -64,7 +64,7 @@ class Chatbot:
                 chain = RunnableWithMessageHistory(
                     base_chain,
                     lambda session_id: self.conn,
-                    input_messages_key='input',
+                    input_messages_key='question',
                     history_messages_key="chat_history",
                 )
 
@@ -78,7 +78,7 @@ class Chatbot:
         if st.session_state.retriever is not None:
             chain = self.create_chain(st.session_state.retriever)
             response = chain.stream( {
-                        "input": prompt,
+                        "question": prompt,
                         "language": self.language
                     } , config={"configurable": {"session_id": self.session_id } } )
 
@@ -97,7 +97,7 @@ class Chatbot:
         else:
             chain = self.create_chain()
             response = chain.stream( {
-                        "input": prompt,
+                        "question": prompt,
                         "context": None,
                         "language": self.language
                     } , config={"configurable": {"session_id": self.session_id } } )

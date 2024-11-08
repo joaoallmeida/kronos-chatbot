@@ -1,8 +1,7 @@
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters.character import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
+from PyPDF2 import PdfReader
 from chatdb import ChatDbMessages
 from chatbot import Chatbot
 from sessions import *
@@ -76,13 +75,17 @@ def display_previous_sessions(_conn):
 
 def load_documents(file_path):
     try:
-        loader = PyPDFLoader(file_path)
-        documents = loader.load()
+        pdf_reader = PdfReader(file_path)
+
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text()
 
         embeddings = HuggingFaceEmbeddings()
         text_splitter = RecursiveCharacterTextSplitter( chunk_size=1000, chunk_overlap=200 )
-        docs = text_splitter.split_documents(documents)
-        vectorstores = FAISS.from_documents(docs, embeddings)
+        docs = text_splitter.split_text(text)
+        vectorstores = FAISS.from_texts(docs, embeddings)
+
     except Exception as e:
         raise e
 
@@ -116,15 +119,11 @@ def sidebar_options(_conn, session_id) -> str:
 
         if uploaded_file:
 
-            file_path = f"/tmp/{uploaded_file.name}"
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-
-            if "uploaded_file_path" not in st.session_state:
-                st.session_state.uploaded_file_path = file_path
+            if "uploaded_file" not in st.session_state:
+                st.session_state.uploaded_file = uploaded_file
 
             if "retriever" not in st.session_state:
-                st.session_state.retriever = load_documents(st.session_state.uploaded_file_path)
+                st.session_state.retriever = load_documents(st.session_state.uploaded_file)
 
 def main():
     try:
