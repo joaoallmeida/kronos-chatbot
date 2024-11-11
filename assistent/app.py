@@ -1,4 +1,4 @@
-from langchain_text_splitters.character import RecursiveCharacterTextSplitter
+from langchain_text_splitters.character import CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
@@ -38,10 +38,10 @@ def display_previous_sessions(_conn):
 def load_documents(file_path):
     try:
         loader = PyPDFLoader(file_path)
-        text = loader.lazy_load()
+        text = loader.load()
 
-        embeddings = HuggingFaceEmbeddings(model_name='BAAI/bge-base-en-v1.5', model_kwargs={'device': 'cpu'}, encode_kwargs={'normalize_embeddings': True})
-        text_splitter = RecursiveCharacterTextSplitter( chunk_size=1000, chunk_overlap=200 )
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+        text_splitter = CharacterTextSplitter( separator="\n", chunk_size=1000, chunk_overlap=200, add_start_index=True, length_function=len, is_separator_regex=False, )
         docs = text_splitter.split_documents(text)
         vectorstores = FAISS.from_documents(docs, embeddings)
 

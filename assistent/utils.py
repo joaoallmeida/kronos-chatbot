@@ -35,7 +35,7 @@ def get_default_settings(is_connected):
     MODEL_OPTIONS = {
         "llama3-8b-8192": {"name": "llama3-8b-8192", "tokens": 8192, "developer": "Meta"},
         "llama3-70b-8192": {"name": "llama3-70b-8192", "tokens": 8192, "developer": "Meta"},
-        "mixtral-8x7b-32768": {"name": "mixtral-8x7b-32768", "tokens": 32768, "developer": "Meta"},
+        "llama-3.2-3b-preview": {"name": "llama-3.2-3b-preview", "tokens": 8192, "developer": "Meta"},
         "gemma-7b-it": {"name": "gemma-7b-it", "tokens": 8192, "developer": "Google"},
     }
 
