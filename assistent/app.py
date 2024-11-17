@@ -42,7 +42,7 @@ def clean_text(text):
   cleaned_text = re.sub(r"[^\w\s]", "", cleaned_text)  # Remove non-alphanumeric characters
   return cleaned_text
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_documents(file_path):
     try:
         loader = PyPDFLoader(file_path)
@@ -64,15 +64,15 @@ def sidebar_options(_conn, session_id) -> str:
     settings = get_default_settings(_conn.messages)
 
     with st.sidebar:
-        st.button('Nova Conversa', icon="➕", on_click=start_new_session, use_container_width=True)
-        st.button("Deletar Conversa", icon="❌", on_click=_conn.clear, use_container_width=True)
-
         with st.popover('Configurações', icon='⚙️', use_container_width=True):
             language_option = st.selectbox("Idioma", options=settings["language_options"], key=f'lang-{session_id}', disabled=settings["disabled"])
             selected_model = st.selectbox("Modelo", options=list(settings["model_options"].keys()), key=f'model-{session_id}', disabled=settings["disabled"])
             temperature = st.slider('Temperatura', 0.0, 2.0, settings["temperature_default"], key=f'temp-{session_id}', disabled=settings["disabled"])
             max_tokens = st.slider('Max Tokens', 0, settings["model_options"][selected_model]["tokens"], settings["max_token_default"], key=f'tokens-{session_id}', disabled=settings["disabled"])
             uploaded_file = st.file_uploader('Adicionar Arquivo', key=f"file-{session_id}", disabled=settings["disabled"])
+
+        st.button('Nova Conversa', icon="➕", on_click=start_new_session, use_container_width=True)
+        st.button("Deletar Conversa", icon="❌", on_click=_conn.clear, use_container_width=True)
 
         st.session_state.session_options = {
             'language': language_option,

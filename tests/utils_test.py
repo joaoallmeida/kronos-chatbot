@@ -57,7 +57,7 @@ def get_default_settings(is_connected):
         return {
             "disabled": False,
             "language_options": ['Português', 'English'],
-            "temperature_default": 0.0,
+            "temperature_default": 1.0,
             "max_token_default": 1024,
             "model_options": MODEL_OPTIONS
         }
