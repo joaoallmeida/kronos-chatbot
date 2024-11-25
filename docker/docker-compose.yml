@@ -30,7 +30,7 @@ services:
       - traefik.http.routers.kronosbot.tls.certresolver=cloudflare
       - homepage.group=Applications
       - homepage.name=Kronos Bot
-      - homepage.icon=https://img.icons8.com/fluency/48/chatbot--v1.png
+      - homepage.icon=https://img.icons8.com/isometric/60/bot.png
       - homepage.href=https://kronosbot.labserver.com.br
       - homepage.description=AI Assistent
       - com.centurylinklabs.watchtower.enable=false

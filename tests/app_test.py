@@ -4,7 +4,34 @@ from langchain_community.document_loaders import PyPDFLoader
 from chatdb_test import ChatDbMessages
 from chatbot_test import Chatbot
 from utils_test import *
+from streamlit_chat import message
 import re
+
+
+class Document:
+    # Function to clean the text
+    def __clean_text__(self, text):
+        cleaned_text = text.strip()  # Remove leading/trailing whitespace
+        cleaned_text = re.sub(r"\s+", " ", cleaned_text)  # Replace extra spaces with a single space
+        cleaned_text = re.sub(r"[^\w\s]", "", cleaned_text)  # Remove non-alphanumeric characters
+        return cleaned_text
+
+    @st.cache_data(show_spinner=False)
+    def load_documents(self, file_path):
+        try:
+            loader = PyPDFLoader(file_path)
+            documents =  loader.load()
+
+            for doc in documents:
+                cleaned = self.__clean_text__(doc.page_content)
+                doc.page_content = cleaned
+
+            embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+            vectorstores = FAISS.from_documents(documents, embeddings)
+        except Exception as e:
+            raise e
+
+        return vectorstores.as_retriever()
 
 def create_session_button(session_id, options, label):
     # Verifica se a sessão é ativa para desabilitar o botão correspondente
@@ -35,30 +62,6 @@ def display_previous_sessions(_conn):
     except Exception as e:
         raise e
 
-# Function to clean the text
-def clean_text(text):
-  cleaned_text = text.strip()  # Remove leading/trailing whitespace
-  cleaned_text = re.sub(r"\s+", " ", cleaned_text)  # Replace extra spaces with a single space
-  cleaned_text = re.sub(r"[^\w\s]", "", cleaned_text)  # Remove non-alphanumeric characters
-  return cleaned_text
-
-@st.cache_data(show_spinner=False)
-def load_documents(file_path):
-    try:
-        loader = PyPDFLoader(file_path)
-        documents =  loader.load()
-
-        for doc in documents:
-            cleaned = clean_text(doc.page_content)
-            doc.page_content = cleaned
-
-        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
-        vectorstores = FAISS.from_documents(documents, embeddings)
-    except Exception as e:
-        raise e
-
-    return vectorstores.as_retriever()
-
 def sidebar_options(_conn, session_id) -> str:
 
     settings = get_default_settings(_conn.messages)
@@ -70,10 +73,9 @@ def sidebar_options(_conn, session_id) -> str:
             temperature = st.slider('Temperatura', 0.0, 2.0, settings["temperature_default"], key=f'temp-{session_id}', disabled=settings["disabled"])
             max_tokens = st.slider('Max Tokens', 0, settings["model_options"][selected_model]["tokens"], settings["max_token_default"], key=f'tokens-{session_id}', disabled=settings["disabled"])
             uploaded_file = st.file_uploader('Adicionar Arquivo', key=f"file-{session_id}", disabled=settings["disabled"])
-            
+
         st.button('Nova Conversa', icon="➕", on_click=start_new_session, use_container_width=True)
         st.button("Deletar Conversa", icon="❌", on_click=_conn.clear, use_container_width=True)
-
 
         st.session_state.session_options = {
             'language': language_option,
@@ -86,6 +88,7 @@ def sidebar_options(_conn, session_id) -> str:
         st.subheader('Recentes', divider='gray')
         display_previous_sessions(_conn)
 
+
         if uploaded_file:
 
             file_path = f"/tmp/{uploaded_file.name}"
@@ -96,12 +99,12 @@ def sidebar_options(_conn, session_id) -> str:
                 st.session_state.uploaded_file = file_path
 
             if st.session_state.retriever is None :
-                st.session_state.retriever = load_documents(st.session_state.uploaded_file)
+                st.session_state.retriever = Document.load_documents(st.session_state.uploaded_file)
 
 def main():
     try:
-        st.set_page_config(page_title='Kronos Bot', page_icon='💬')
-        st.markdown("<h1 style='text-align:center;'><img width='60' height='60' src='https://img.icons8.com/isometric/60/bot.png'/> Kronos Assistent</h1>", unsafe_allow_html=True)
+        st.set_page_config(page_title='Kronos Chatbot', page_icon='💬')
+        st.markdown("<h1 style='text-align:center;'><img width='60' height='60' src='https://img.icons8.com/fluency/48/chatbot--v1.png'/> Kronos Assistent</h1>", unsafe_allow_html=True)
         st.header("", divider='rainbow', anchor=False)
 
         session_id = init_sessions()

@@ -55,7 +55,7 @@ class ChatDbMessages(BaseChatMessageHistory):
                 unique_sessions[session_id] = timestamp
 
         # Retornar o session_id e timestamp únicos
-        return [{'session_id': session_id, 'timestamp': timestamp} for session_id, session in unique_sessions.items()]
+        return [{'session_id': session_id, 'timestamp': timestamp} for session_id, timestamp in unique_sessions.items()]
 
     def get_previus_sessions_options(self, session_id:str) -> dict:
         return [json.loads(data['session_options']) for data in self.collection.find({"session_id":session_id}).limit(1)][0]
