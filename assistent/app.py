@@ -30,7 +30,7 @@ class Document:
             raise e
 
         return vectorstores.as_retriever()
-    
+
 def create_session_button(session_id, options, label):
     # Verifica se a sessão é ativa para desabilitar o botão correspondente
     disabled = (st.session_state.get("session_id") == session_id)
@@ -101,9 +101,8 @@ def sidebar_options(_conn, session_id) -> str:
 def main():
     try:
         st.set_page_config(page_title='Kronos Chatbot', page_icon='💬')
-        st.markdown("<h1 style='text-align:center;'><img width='60' height='60' src='https://img.icons8.com/fluency/48/chatbot--v1.png'/> Kronos Assistent</h1>", unsafe_allow_html=True)
+        st.markdown('<h1><img src="https://img.icons8.com/fluency/50/chatbot--v1.png" alt="Kronos Assistent" style="vertical-align: middle;padding: 0 0 5px 0 ;"> Kronos Assistent</h1>', unsafe_allow_html=True)
         st.header("", divider='rainbow', anchor=False)
-
         session_id = init_sessions()
 
         conn = ChatDbMessages()
