@@ -43,6 +43,7 @@ class ChatDbMessages(BaseChatMessageHistory):
 
     def clear(self) -> None:
         self.collection.delete_many({'session_id': self.session_id})
+        st.cache_data.clear()
 
     def get_previus_sessions(self):
         unique_sessions = {}

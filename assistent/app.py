@@ -14,10 +14,11 @@ class Document:
         cleaned_text = re.sub(r"[^\w\s]", "", cleaned_text)  # Remove non-alphanumeric characters
         return cleaned_text
 
-    @st.cache_data(show_spinner=False)
-    def load_documents(self, file_path):
+    # @st.cache_data(show_spinner=False)
+    @property
+    def load(self):
         try:
-            loader = PyPDFLoader(file_path)
+            loader = PyPDFLoader(st.session_state.uploaded_file)
             documents =  loader.load()
 
             for doc in documents:
@@ -96,7 +97,7 @@ def sidebar_options(_conn, session_id) -> str:
                 st.session_state.uploaded_file = file_path
 
             if st.session_state.retriever is None :
-                st.session_state.retriever = Document.load_documents(st.session_state.uploaded_file)
+                st.session_state.retriever = Document().load
 
 def main():
     try:
