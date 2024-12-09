@@ -46,7 +46,7 @@ class Chatbot:
         return ChatPromptTemplate.from_template(template)
 
     def create_chain_qa(self, retriever) -> RunnableWithMessageHistory:
-        try:            
+        try:
             question_answer_chain = create_stuff_documents_chain(self.llm, self.get_prompt())
             base_chain = create_retrieval_chain(retriever, question_answer_chain)
         except Exception as e:
@@ -60,7 +60,7 @@ class Chatbot:
                     output_messages_key='answer',
                 )
 
-    def process_reponse_qa(self, prompt:str) -> None:
+    def process_response_qa(self, prompt:str) -> None:
         chain = self.create_chain_qa(st.session_state.retriever)
         response = chain.stream( {
                     "input": prompt,
@@ -74,14 +74,14 @@ class Chatbot:
         for content in response:
             if 'answer' in content:
                 assistant_message += str(content['answer'])
-            
+
             response_text.markdown(assistant_message + "█ ")
             time.sleep(0.02)
-            
+
         response_text.markdown(assistant_message)
-        
+
     def create_chain(self) -> RunnableWithMessageHistory:
-        try:            
+        try:
             base_chain = self.get_prompt() | self.llm | StrOutputParser()
         except Exception as e:
             raise e
@@ -92,7 +92,7 @@ class Chatbot:
                     history_messages_key="chat_history",
                 )
 
-    def process_reponse(self, prompt:str) -> None:
+    def process_response(self, prompt:str) -> None:
         chain = self.create_chain()
         response = chain.stream( {
                     "input": prompt,
@@ -108,11 +108,11 @@ class Chatbot:
             assistant_message += content
             response_text.markdown(assistant_message + "█ ")
             time.sleep(0.02)
-            
+
         response_text.markdown(assistant_message)
 
     def bot_response(self, prompt:str) -> None:
         if st.session_state.retriever is not None:
-            self.process_reponse_qa(prompt)
+            self.process_response_qa(prompt)
         else:
-            self.process_reponse(prompt)
+            self.process_response(prompt)
