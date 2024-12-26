@@ -14,7 +14,6 @@ class Document:
         cleaned_text = re.sub(r"[^\w\s]", "", cleaned_text)  # Remove non-alphanumeric characters
         return cleaned_text
 
-    # @st.cache_data(show_spinner=False)
     @property
     def load(self):
         try:
