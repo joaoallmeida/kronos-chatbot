@@ -1,6 +1,6 @@
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader,CSVLoader
 from chatdb_test import ChatDbMessages
 from chatbot_test import Chatbot
 from utils_test import *
@@ -17,15 +17,20 @@ class Document:
     @property
     def load(self):
         try:
-            loader = PyPDFLoader(st.session_state.uploaded_file)
-            documents =  loader.load()
 
+            if st.session_state.file_type == 'pdf':
+                loader = PyPDFLoader(st.session_state.uploaded_file)
+            else:
+                loader = CSVLoader(st.session_state.uploaded_file)
+            
+            documents =  loader.load()
             for doc in documents:
                 cleaned = self.__clean_text__(doc.page_content)
                 doc.page_content = cleaned
 
             embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
             vectorstores = FAISS.from_documents(documents, embeddings)
+
         except Exception as e:
             raise e
 
@@ -75,7 +80,7 @@ class App:
                 selected_model = st.selectbox("Modelo", options=list(settings["model_options"].keys()), key=f'model-{self.session_id}', disabled=settings["disabled"])
                 temperature = st.slider('Temperatura', 0.0, 2.0, settings["temperature_default"], key=f'temp-{self.session_id}', disabled=settings["disabled"])
                 max_tokens = st.slider('Max Tokens', 0, settings["model_options"][selected_model]["tokens"], settings["max_token_default"], key=f'tokens-{self.session_id}', disabled=settings["disabled"])
-                uploaded_file = st.file_uploader('Adicionar Arquivo', key=f"file-{self.session_id}", disabled=settings["disabled"])
+                uploaded_file = st.file_uploader('Adicionar Arquivo', key=f"file-{self.session_id}", disabled=settings["disabled"], type=['csv','pdf'])
 
             st.button('Nova Conversa', icon="➕", on_click=start_new_session, use_container_width=True)
             st.button("Deletar Conversa", icon="❌", on_click=self.conn.clear, use_container_width=True)
@@ -93,12 +98,13 @@ class App:
 
             if uploaded_file:
 
-                file_path = f"/tmp/{uploaded_file.name}"
+                file_path = f"/tmp/{uploaded_file.name}"                
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
 
-                if st.session_state.uploaded_file is None :
+                if st.session_state.uploaded_file is None or st.session_state.file_type is None:
                     st.session_state.uploaded_file = file_path
+                    st.session_state.file_type = uploaded_file.type.split('/')[1]
 
                 if st.session_state.retriever is None :
                     st.session_state.retriever = Document().load
