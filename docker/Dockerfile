@@ -3,7 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 COPY docker/requirements.txt .
-COPY ../assistent .
+COPY ../assistant .
 
 RUN pip3 install --upgrade pip && pip3 install -r requirements.txt --no-cache-dir
 
