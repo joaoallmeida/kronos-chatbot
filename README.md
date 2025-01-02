@@ -1,4 +1,11 @@
-# 🤖 The AI Personal Assistant: A Python-based Generative AI Model for Content Creation
+# 🤖 The AI Personal Assistant: A Python-based Generative AI Model for Personal Usage
+
+![Static Badge](https://img.shields.io/badge/Author-joaoallmeida-red?style=flat-square&color=5B1647)
+![Static Badge](https://img.shields.io/badge/Generative-AI-blue?style=flat-square&color=93073E)
+![GitHub License](https://img.shields.io/github/license/joaoallmeida/personal-ai-chatbot?style=flat-square&color=C90035&label=License)
+![GitHub Repo stars](https://img.shields.io/github/stars/joaoallmeida/personal-ai-chatbot?style=flat-square&color=ff5627&label=Stars)
+![GitHub contributors](https://img.shields.io/github/contributors/joaoallmeida/personal-ai-chatbot?style=flat-square&color=ffc400&label=Contributors)
+![GitHub top language](https://img.shields.io/github/languages/top/joaoallmeida/personal-ai-chatbot?style=flat-square&color=1b4f72)
 
 ## 🚀 Overview
 
@@ -19,7 +26,12 @@ For the project to work well, the following requirements are necessary:
 * **Python**: >=3.12
 * **Docker**
 * **Groq API Key**
-* **Env Variable**: ```GROQ_API_KEY=<your_api_key>```
+
+### Environment Variables
+
+```bash
+GROQ_API_KEY=<your_api_key>
+```
 
 To get all Python dependencies, you can cat the **pyproject.toml** or **requirements.txt** files and see all the required dependencies.
 
@@ -75,3 +87,11 @@ For example, you can use the AI Personal Assistant to generate a summary of a lo
 Below is an demo of application usage:
 
 ![demo](docs/demo.gif)
+
+## 📝 Authors
+
+* joaoallmeida 😎
+
+## 🔑 License
+
+This project is licensed under the MIT License - See the [LICENSE](LICENSE) file for more details.
