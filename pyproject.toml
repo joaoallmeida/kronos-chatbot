@@ -20,6 +20,7 @@ sentence-transformers = "^3.2.1"
 langchain-huggingface = "^0.1.2"
 pypdf = "^5.1.0"
 ipykernel = "^6.29.5"
+speechrecognition = "^3.11.0"
 
 
 [build-system]

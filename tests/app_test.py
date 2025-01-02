@@ -22,7 +22,7 @@ class Document:
                 loader = PyPDFLoader(st.session_state.uploaded_file)
             else:
                 loader = CSVLoader(st.session_state.uploaded_file)
-            
+
             documents =  loader.load()
             for doc in documents:
                 cleaned = self.__clean_text__(doc.page_content)
@@ -98,7 +98,7 @@ class App:
 
             if uploaded_file:
 
-                file_path = f"/tmp/{uploaded_file.name}"                
+                file_path = f"/tmp/{uploaded_file.name}"
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
 
@@ -111,8 +111,8 @@ class App:
 
 def main():
     try:
-        st.set_page_config(page_title='Kronos Chatbot', page_icon='💬')
-        st.markdown('<h1><img src="https://img.icons8.com/fluency/50/chatbot--v1.png" alt="Kronos Assistent" style="vertical-align: middle;padding: 0 0 5px 0 ;"> Kronos Assistent</h1>', unsafe_allow_html=True)
+        st.set_page_config(page_title='AI Chatbot', page_icon='💬')
+        st.markdown('<h1><img src="https://img.icons8.com/fluency/50/chatbot--v1.png" alt="Kronos - AI Assistant" style="vertical-align: middle;padding: 0 0 5px 0 ;"> Kronos - AI Assistant</h1>', unsafe_allow_html=True)
         st.header("", divider='rainbow', anchor=False)
 
         session_id = init_sessions()

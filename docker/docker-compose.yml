@@ -4,6 +4,7 @@ services:
   mongodb:
     image: mongo
     container_name: mongodb
+    command: --wiredTigerCacheSizeGB 1.0
     ports:
       - 27017:27017
     volumes:
@@ -16,24 +17,10 @@ services:
     image: chatbot:latest
     container_name: chatbot
     environment:
-      env_file: "../.env"
+      GROQ_API_KEY: <your_api_key>
     depends_on:
       - mongodb
     restart: unless-stopped
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.kronosbot.rule=Host(`kronosbot.labserver.com.br`)
-      - traefik.http.routers.kronosbot.entrypoints=websecure
-      - traefik.http.routers.kronosbot.service=kronosbot
-      - traefik.http.services.kronosbot.loadbalancer.server.port=8501
-      - traefik.http.routers.kronosbot.tls=true
-      - traefik.http.routers.kronosbot.tls.certresolver=cloudflare
-      - homepage.group=Applications
-      - homepage.name=Kronos Bot
-      - homepage.icon=https://img.icons8.com/isometric/60/bot.png
-      - homepage.href=https://kronosbot.labserver.com.br
-      - homepage.description=AI Assistent
-      - com.centurylinklabs.watchtower.enable=false
     networks:
       - proxy
 
@@ -54,7 +41,7 @@ services:
 
 networks:
   proxy:
-    external: true
+    driver: bridge
 
 volumes:
   chatbotdb:
