@@ -1,4 +1,4 @@
-# 🤖 The AI Personal Assistant: A Python-based Generative AI Model for Personal Usage
+# 🤖 Kronos - The AI Personal Assistant
 
 ![Static Badge](https://img.shields.io/badge/Author-joaoallmeida-red?style=flat-square&color=5B1647)
 ![Static Badge](https://img.shields.io/badge/Generative-AI-blue?style=flat-square&color=93073E)
@@ -9,7 +9,7 @@
 
 ## 🚀 Overview
 
-The AI Personal Assistant it's an application of intelligence artificial that uses the Langchain library, streamlit and the Groq Free API to generated a high-quality text based on user input. Developed in Python, this project aims to facilitate faster and more efficient content creation.
+Kronos - AI Personal Assistant, is a Python-based artificial intelligence application that uses the Langchain library, streamlit, and the Groq Free API to generate high-quality text based on user input. This project aims to facilitate faster and more efficient content creation.
 
 ## 📚 Dependencies & Requirements
 
