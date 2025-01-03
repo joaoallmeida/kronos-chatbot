@@ -2,10 +2,10 @@
 
 ![Static Badge](https://img.shields.io/badge/Author-joaoallmeida-red?style=flat-square&color=5B1647)
 ![Static Badge](https://img.shields.io/badge/Generative-AI-blue?style=flat-square&color=93073E)
-![GitHub License](https://img.shields.io/github/license/joaoallmeida/personal-ai-chatbot?style=flat-square&color=C90035&label=License)
-![GitHub Repo stars](https://img.shields.io/github/stars/joaoallmeida/personal-ai-chatbot?style=flat-square&color=ff5627&label=Stars)
-![GitHub contributors](https://img.shields.io/github/contributors/joaoallmeida/personal-ai-chatbot?style=flat-square&color=ffc400&label=Contributors)
-![GitHub top language](https://img.shields.io/github/languages/top/joaoallmeida/personal-ai-chatbot?style=flat-square&color=1b4f72)
+![GitHub License](https://img.shields.io/github/license/joaoallmeida/personal-chatbot?style=flat-square&color=C90035&label=License)
+![GitHub Repo stars](https://img.shields.io/github/stars/joaoallmeida/personal-chatbot?style=flat-square&color=ff5627&label=Stars)
+![GitHub contributors](https://img.shields.io/github/contributors/joaoallmeida/personal-chatbot?style=flat-square&color=ffc400&label=Contributors)
+![GitHub top language](https://img.shields.io/github/languages/top/joaoallmeida/personal-chatbot?style=flat-square&color=1b4f72)
 
 ## 🚀 Overview
 
