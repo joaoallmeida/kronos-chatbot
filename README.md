@@ -42,7 +42,9 @@ To get all Python dependencies, you can cat the **pyproject.toml** or **requirem
 * ```make build```: Build the docker image and containers
 * ```make destroy```: Remove the docker image and containers
 
-For Windows System, you need to run the following commands in the terminal:
+### Docker Commands
+
+For Windows system or if you prefer, you can run the following commands in the terminal:
 
 ```bash
 # Build
