@@ -1,6 +1,9 @@
 from datetime import datetime
+from groq import Groq
 import streamlit as st
 import uuid
+import os
+
 
 def init_sessions():
     if "session_id" not in st.session_state:
@@ -31,14 +34,15 @@ def set_timestamp_session(sessions:list):
 def mask_text(text: str) -> str:
     return text[:30] + "..." if len(text) > 30 else text
 
+@st.cache_data
+def get_models() -> dict:
+    client = Groq( api_key=os.environ.get("GROQ_API_KEY") )
+    models = client.models.list()
+    models_dict = models.to_dict()
+    return { a['id']: {"name": a['id'], "tokens": a['context_window'], "developer": a['owned_by']}  for a in models_dict['data'] if a['active'] is True }
+
 def get_default_settings(is_connected):
-    MODEL_OPTIONS = {
-        "llama3-70b-8192": {"name": "llama3-70b-8192", "tokens": 8192, "developer": "Meta"},
-        "llama3-8b-8192": {"name": "llama3-8b-8192", "tokens": 8192, "developer": "Meta"},
-        "llama-3.2-3b-preview": {"name": "llama-3.2-3b-preview", "tokens": 8192, "developer": "Meta"},
-        "mixtral-8x7b-32768": {"name": "mixtral-8x7b-32768", "tokens": 32768, "developer": "Meta"},
-        "gemma-7b-it": {"name": "gemma-7b-it", "tokens": 8192, "developer": "Google"},
-    }
+    MODEL_OPTIONS = get_models()
 
     if is_connected:
         return {
@@ -61,4 +65,3 @@ def get_default_settings(is_connected):
             "max_token_default": 1024,
             "model_options": MODEL_OPTIONS
         }
-

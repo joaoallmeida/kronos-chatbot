@@ -36,6 +36,7 @@ class Document:
 
         return vectorstores.as_retriever()
 
+
 class App:
     def __init__(self, session_id:str, conn:ChatDbMessages):
         self.session_id = session_id
