@@ -4,7 +4,6 @@ import streamlit as st
 import uuid
 import os
 
-
 def init_sessions():
     if "session_id" not in st.session_state:
         st.session_state.session_id = str(uuid.uuid4())
@@ -14,7 +13,10 @@ def init_sessions():
         st.session_state.retriever = None
     if "uploaded_file" not in st.session_state:
         st.session_state.uploaded_file = None
-    return st.session_state.session_id
+    if 'rag_enabled' not in st.session_state:
+        st.session_state.rag_enabled = False
+    if 'db_connection' not in st.session_state:
+        st.session_state.db_connection = None
 
 def start_new_session():
     for key in st.session_state.keys():
@@ -53,7 +55,8 @@ def get_default_settings(is_connected):
             "model_options": {
                 st.session_state.session_options['model']: {
                     "name": st.session_state.session_options['model'],
-                    "tokens": MODEL_OPTIONS[st.session_state.session_options['model']]['tokens']
+                    "tokens": MODEL_OPTIONS[st.session_state.session_options['model']]['tokens'],
+                    "developer": MODEL_OPTIONS[st.session_state.session_options['model']]['developer']
                 }
             }
         }
@@ -66,4 +69,21 @@ def get_default_settings(is_connected):
             "model_options": MODEL_OPTIONS
         }
 
+def thinkins_processing(response, ctype:str=None) -> any:
+    import re
 
+    think_pattern = r'<think>(.*?)</think>'
+
+    if ctype == 'rag':
+        response = response['answer']
+
+    think_match = re.findall(think_pattern, response, re.DOTALL)
+
+    if think_match:
+        thinking_process = [a.strip() for a in think_match][0]
+        final_response = re.sub(think_pattern, '', response, flags=re.DOTALL).split(' ')
+    else:
+        thinking_process = None
+        final_response = response.split(' ')
+
+    return thinking_process, final_response

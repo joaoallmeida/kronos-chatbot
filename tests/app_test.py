@@ -1,6 +1,7 @@
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.document_loaders import PyPDFLoader,CSVLoader
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from chatdb_test import ChatDbMessages
 from chatbot_test import Chatbot
 from utils_test import *
@@ -8,39 +9,44 @@ import re
 
 class Document:
     # Function to clean the text
-    def __clean_text__(self, text):
-        cleaned_text = text.strip()  # Remove leading/trailing whitespace
-        cleaned_text = re.sub(r"\s+", " ", cleaned_text)  # Replace extra spaces with a single space
-        cleaned_text = re.sub(r"[^\w\s]", "", cleaned_text)  # Remove non-alphanumeric characters
-        return cleaned_text
+    # def __clean_text__(self, text):
+    #     cleaned_text = text.strip()  # Remove leading/trailing whitespace
+    #     cleaned_text = re.sub(r"\s+", " ", cleaned_text)  # Replace extra spaces with a single space
+    #     cleaned_text = re.sub(r"[^\w\s]", "", cleaned_text)  # Remove non-alphanumeric characters
+    #     return cleaned_text
 
     @property
     def load(self):
         try:
 
-            if st.session_state.file_type == 'pdf':
-                loader = PyPDFLoader(st.session_state.uploaded_file)
-            else:
-                loader = CSVLoader(st.session_state.uploaded_file)
-
+            loader = PyPDFLoader(st.session_state.uploaded_file)
             documents =  loader.load()
-            for doc in documents:
-                cleaned = self.__clean_text__(doc.page_content)
-                doc.page_content = cleaned
+
+            # for doc in documents:
+            #     cleaned = self.__clean_text__(doc.page_content)
+            #     doc.page_content = cleaned
+
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,
+                chunk_overlap=200
+            )
+
+            doc = text_splitter.split_documents(documents)
 
             embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
-            vectorstores = FAISS.from_documents(documents, embeddings)
+            vector_stores = FAISS.from_documents(doc, embeddings)
 
         except Exception as e:
             raise e
 
-        return vectorstores.as_retriever()
+        return vector_stores.as_retriever(search_type='mmr')
 
 
 class App:
-    def __init__(self, session_id:str, conn:ChatDbMessages):
-        self.session_id = session_id
-        self.conn = conn
+    def __init__(self):
+        self.session_id = st.session_state.session_id
+        self.conn = st.session_state.db_connection
+        self.options()
 
     def create_session_button(self, session_id, options, label):
         # Verifica se a sessão é ativa para desabilitar o botão correspondente
@@ -71,44 +77,54 @@ class App:
         except Exception as e:
             raise e
 
-    def sidebar_options(self) -> str:
+    def options(self) -> str:
 
+        uploaded_file = False
         settings = get_default_settings(self.conn.messages)
 
         with st.sidebar:
+
+            st.button('Nova Conversa', icon="➕", on_click=start_new_session, use_container_width=True)
+            if st.button("Deletar Conversa", icon="❌", on_click=self.conn.clear, use_container_width=True):
+                st.rerun()
+
             with st.popover('Configurações', icon='⚙️', use_container_width=True):
                 language_option = st.selectbox("Idioma", options=settings["language_options"], key=f'lang-{self.session_id}', disabled=settings["disabled"])
                 selected_model = st.selectbox("Modelo", options=list(settings["model_options"].keys()), key=f'model-{self.session_id}', disabled=settings["disabled"])
                 temperature = st.slider('Temperatura', 0.0, 2.0, settings["temperature_default"], key=f'temp-{self.session_id}', disabled=settings["disabled"])
                 max_tokens = st.slider('Max Tokens', 0, settings["model_options"][selected_model]["tokens"], settings["max_token_default"], key=f'tokens-{self.session_id}', disabled=settings["disabled"])
-                uploaded_file = st.file_uploader('Adicionar Arquivo', key=f"file-{self.session_id}", disabled=settings["disabled"], type=['csv','pdf'])
+                st.session_state.rag_enabled = st.toggle("RAG", value=st.session_state.rag_enabled, disabled=settings["disabled"])
 
-            st.button('Nova Conversa', icon="➕", on_click=start_new_session, use_container_width=True)
-            st.button("Deletar Conversa", icon="❌", on_click=self.conn.clear, use_container_width=True)
+                if st.session_state.rag_enabled:
+                    st.markdown("##### 📁 Carregar Arquivo")
+                    uploaded_file = st.file_uploader('Adicionar PDF', key=f"file-{self.session_id}", type=['pdf'])
+
 
             st.session_state.session_options = {
                 'language': language_option,
                 'model': selected_model,
                 'max_tokens': max_tokens,
-                'temperature': temperature
+                'temperature': temperature,
+                'developer': settings["model_options"][selected_model]['developer']
             }
 
             st.markdown('###')
             st.subheader('Recentes', divider='gray')
             self.display_previous_sessions()
 
-            if uploaded_file:
+        if uploaded_file:
+            if st.session_state.uploaded_file is None and st.session_state.retriever is None:
+                file_name = uploaded_file.name
+                file_path = f"/tmp/{file_name}"
 
-                file_path = f"/tmp/{uploaded_file.name}"
-                with open(file_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
+                with st.spinner(f'Processando Arquivo: {file_name}...'):
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
 
-                if st.session_state.uploaded_file is None or st.session_state.file_type is None:
                     st.session_state.uploaded_file = file_path
-                    st.session_state.file_type = uploaded_file.type.split('/')[1]
-
-                if st.session_state.retriever is None :
                     st.session_state.retriever = Document().load
+
+                    st.success(f"Arquivo processado.", icon='✅')
 
 def main():
     try:
@@ -116,20 +132,34 @@ def main():
         st.markdown('<h1><img src="https://img.icons8.com/fluency/50/chatbot--v1.png" alt="Kronos - AI Assistant" style="vertical-align: middle;padding: 0 0 5px 0 ;"> Kronos - AI Assistant</h1>', unsafe_allow_html=True)
         st.header("", divider='rainbow', anchor=False)
 
-        session_id = init_sessions()
-        conn = ChatDbMessages()
+        init_sessions()
+        st.session_state.db_connection = ChatDbMessages()
 
-        app = App(session_id, conn)
-        app.sidebar_options()
+        app = App()
+        bot = Chatbot()
 
-        bot = Chatbot(conn, session_id)
+        for msg in st.session_state.db_connection.messages:
 
-        for msg in conn.messages:
-            st.chat_message(msg.type).write(msg.content)
+            think_pattern = r'<think>(.*?)</think>'
+            think_match = re.search(think_pattern, msg.content, re.DOTALL)
+
+            if think_match:
+                thinking_process = think_match.group(1).strip()
+                final_response = re.sub(think_pattern, '', msg.content, flags=re.DOTALL).strip()
+            else:
+                thinking_process = None
+                final_response = msg.content
+
+            st.chat_message(msg.type).write(final_response)
+
+            if thinking_process:
+                with st.expander("🤔 Veja o processo de pensamento"):
+                    st.markdown(thinking_process)
 
         if prompt := st.chat_input():
             st.chat_message('human').write(prompt)
             bot.bot_response(prompt)
+
 
     except Exception as e:
         raise e

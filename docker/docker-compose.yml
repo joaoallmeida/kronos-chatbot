@@ -12,6 +12,12 @@ services:
     restart: unless-stopped
     networks:
       - proxy
+    labels:
+      - homepage.group=Background Services
+      - homepage.name=MongoDB
+      - homepage.icon=https://icon.icepanel.io/Technology/svg/MongoDB.svg
+      - homepage.description=NoSQL Database
+      - com.centurylinklabs.watchtower.enable=false
 
   chatbot:
     image: chatbot:latest
@@ -21,6 +27,20 @@ services:
     depends_on:
       - mongodb
     restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.kronosbot.rule=Host(`kronosbot.labserver.com.br`)
+      - traefik.http.routers.kronosbot.entrypoints=websecure
+      - traefik.http.routers.kronosbot.service=kronosbot
+      - traefik.http.services.kronosbot.loadbalancer.server.port=8501
+      - traefik.http.routers.kronosbot.tls=true
+      - traefik.http.routers.kronosbot.tls.certresolver=cloudflare
+      - homepage.group=Applications
+      - homepage.name=Kronos Bot
+      - homepage.icon=https://img.icons8.com/isometric/60/bot.png
+      - homepage.href=https://kronosbot.labserver.com.br
+      - homepage.description=AI Chatbot
+      - com.centurylinklabs.watchtower.enable=false
     networks:
       - proxy
 
@@ -38,10 +58,17 @@ services:
     restart: unless-stopped
     networks:
       - proxy
+    labels:
+      - homepage.group=Applications
+      - homepage.name=Mongo Express
+      - homepage.icon=https://images.seeklogo.com/logo-png/48/2/mongodb-logo-png_seeklogo-481256.png
+      - homepage.href=http://192.168.15.6:4080
+      - homepage.description=Database IDE
+      - com.centurylinklabs.watchtower.enable=true
 
 networks:
   proxy:
-    driver: bridge
+    external: true
 
 volumes:
   chatbotdb:

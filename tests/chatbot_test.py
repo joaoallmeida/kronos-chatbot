@@ -4,18 +4,20 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from utils_test import *
 import streamlit as st
 import time
 
 class Chatbot:
-    def __init__(self, conn, session_id:str):
+    def __init__(self):
         options = st.session_state.session_options
+        self.conn = st.session_state.db_connection
         self.language = options['language']
         self.model = options['model']
+        self.developer = options['developer']
         self.temperature = options['temperature']
         self.max_tokens = options['max_tokens']
-        self.conn = conn
-        self.session_id = session_id
+        self.session_id = st.session_state.session_id
         self.llm = ChatGroq(model=self.model, temperature=self.temperature, max_tokens=self.max_tokens, streaming=True)
 
     def get_prompt(self) -> ChatPromptTemplate:
@@ -45,10 +47,27 @@ class Chatbot:
 
         return ChatPromptTemplate.from_template(template)
 
-    def create_chain_qa(self, retriever) -> RunnableWithMessageHistory:
-        try:            
-            question_answer_chain = create_stuff_documents_chain(self.llm, self.get_prompt())
-            base_chain = create_retrieval_chain(retriever, question_answer_chain)
+    def get_qa_prompt(self) -> ChatPromptTemplate:
+        template = """
+            You are an assistant for question-answering tasks.
+            Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know.
+            Use three sentences maximum and keep the answer concise.
+            Your human is called 'João' and you need to answer all the questions in {language}.
+
+            Chat history: {chat_history}
+
+            Context: {context}
+
+            Input: {input}
+
+            Output:"""
+
+        return ChatPromptTemplate.from_template(template)
+
+    def create_chain_qa(self) -> RunnableWithMessageHistory:
+        try:
+            question_answer_chain = create_stuff_documents_chain(self.llm, self.get_qa_prompt())
+            base_chain = create_retrieval_chain(st.session_state.retriever, question_answer_chain)
         except Exception as e:
             raise e
 
@@ -61,27 +80,54 @@ class Chatbot:
                 )
 
     def process_reponse_qa(self, prompt:str) -> None:
-        chain = self.create_chain_qa(st.session_state.retriever)
-        response = chain.stream( {
+        chain = self.create_chain_qa()
+
+        if 'DeepSeek' in self.developer:
+            with st.spinner("☁️ Thinking..."):
+                response = chain.invoke( {
                     "input": prompt,
                     "language": self.language,
                 } , config={"configurable": {"session_id": self.session_id } } )
 
-        response_container = st.chat_message("assistant")
-        response_text = response_container.empty()
-        assistant_message = ''
 
-        for content in response:
-            if 'answer' in content:
-                assistant_message += str(content['answer'])
-            
-            response_text.markdown(assistant_message + "█ ")
-            time.sleep(0.02)
-            
-        response_text.markdown(assistant_message)
-        
+                thinking_process, final_response = thinkins_processing(response, 'rag')
+
+            response_container = st.chat_message("assistant")
+            response_text = response_container.empty()
+            assistant_message = ''
+
+            for content in final_response:
+                assistant_message += (content + ' ')
+                response_text.markdown(assistant_message + "█ ")
+                time.sleep(0.02)
+
+            response_text.markdown(assistant_message)
+
+            if thinking_process:
+                with st.expander("🤔 Veja o processo de pensamento"):
+                    st.markdown(thinking_process)
+        else:
+            response = chain.stream( {
+                    "input": prompt,
+                    "language": self.language,
+                } , config={"configurable": {"session_id": self.session_id } } )
+
+            response_container = st.chat_message("assistant")
+            response_text = response_container.empty()
+            assistant_message = ''
+
+            for content in response:
+                if 'answer' in content:
+                    assistant_message += str(content['answer'])
+
+                response_text.markdown(assistant_message + "█ ")
+                time.sleep(0.02)
+
+            response_text.markdown(assistant_message)
+
+
     def create_chain(self) -> RunnableWithMessageHistory:
-        try:            
+        try:
             base_chain = self.get_prompt() | self.llm | StrOutputParser()
         except Exception as e:
             raise e
@@ -94,22 +140,48 @@ class Chatbot:
 
     def process_reponse(self, prompt:str) -> None:
         chain = self.create_chain()
-        response = chain.stream( {
-                    "input": prompt,
-                    "language": self.language,
-                    "context": None
-                } , config={"configurable": {"session_id": self.session_id } } )
 
-        response_container = st.chat_message("assistant")
-        response_text = response_container.empty()
-        assistant_message = ''
+        if 'DeepSeek' in self.developer:
+            with st.spinner("☁️ Thinking..."):
+                response = chain.invoke( {
+                            "input": prompt,
+                            "language": self.language,
+                            "context": None
+                        } , config={"configurable": {"session_id": self.session_id } } )
 
-        for content in response:
-            assistant_message += content
-            response_text.markdown(assistant_message + "█ ")
-            time.sleep(0.02)
-            
-        response_text.markdown(assistant_message)
+                thinking_process, final_response = thinkins_processing(response)
+
+            response_container = st.chat_message("assistant")
+            response_text = response_container.empty()
+            assistant_message = ''
+
+            for content in final_response:
+                assistant_message += (content + ' ')
+                response_text.markdown(assistant_message + "█ ")
+                time.sleep(0.02)
+
+            response_text.markdown(assistant_message)
+
+            if thinking_process:
+                with st.expander("🤔 Veja o processo de pensamento"):
+                    st.markdown(thinking_process)
+        else:
+            response = chain.stream( {
+                        "input": prompt,
+                        "language": self.language,
+                        "context": None
+                    } , config={"configurable": {"session_id": self.session_id } } )
+
+            response_container = st.chat_message("assistant")
+            response_text = response_container.empty()
+            assistant_message = ''
+
+            for content in response:
+                assistant_message += content
+                response_text.markdown(assistant_message + "█ ")
+                time.sleep(0.02)
+
+            response_text.markdown(assistant_message)
 
     def bot_response(self, prompt:str) -> None:
         if st.session_state.retriever is not None:
