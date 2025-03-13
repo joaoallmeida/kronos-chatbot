@@ -1,44 +1,54 @@
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders.parsers import RapidOCRBlobParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_qdrant.vectorstores import Qdrant
 from chatdb import ChatDbMessages
 from chatbot import Chatbot
 from utils import *
 import re
 
 class Document:
-    # Function to clean the text
-    # def __clean_text__(self, text):
-    #     cleaned_text = text.strip()  # Remove leading/trailing whitespace
-    #     cleaned_text = re.sub(r"\s+", " ", cleaned_text)  # Replace extra spaces with a single space
-    #     cleaned_text = re.sub(r"[^\w\s]", "", cleaned_text)  # Remove non-alphanumeric characters
-    #     return cleaned_text
 
-    @property
-    def load(self):
+    def load(self, file):
         try:
 
-            loader = PyPDFLoader(st.session_state.uploaded_file)
-            documents =  loader.load()
+            file_path = f"/tmp/{file.name}"
+            file_type = file.type.split('/')[1]
 
-            # for doc in documents:
-            #     cleaned = self.__clean_text__(doc.page_content)
-            #     doc.page_content = cleaned
+            with st.spinner(f'Processando Arquivo: {file.name}...'):
+                with open(file_path, "wb") as f:
+                    f.write(file.getbuffer())
 
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=200
-            )
+                loader = PyPDFLoader(
+                    file_path,
+                    mode='page',
+                    extract_images=True,
+                    images_inner_format="text",
+                    images_parser=RapidOCRBlobParser()
+                )
+                documents =  loader.load()
 
-            doc = text_splitter.split_documents(documents)
-            embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
-            vector_stores = FAISS.from_documents(doc, embeddings)
+                # Add source metadata
+                for doc in documents:
+                    doc.metadata.update({
+                        "source_type": file_type,
+                        "file_name": file.name,
+                        "timestamp": datetime.now().isoformat()
+                    })
+
+                text_splitter = RecursiveCharacterTextSplitter( chunk_size=2048, chunk_overlap=128 )
+                docs = text_splitter.split_documents(documents)
+
+                embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
+                vector_stores = Qdrant.from_documents(docs, embeddings, location=":memory:", collection_name="document_embeddings")
+
+                st.success(f"Arquivo processado", icon='✅')
 
         except Exception as e:
             raise e
 
-        return vector_stores.as_retriever(search_type='mmr')
+        return vector_stores.as_retriever(search_type="mmr", search_kwargs={"k": 5})
 
 
 class App:
@@ -89,10 +99,10 @@ class App:
 
             with st.popover('Configurações', icon='⚙️', use_container_width=True):
                 language_option = st.selectbox("Idioma", options=settings["language_options"], key=f'lang-{self.session_id}', disabled=settings["disabled"])
-                selected_model = st.selectbox("Modelo", options=list(settings["model_options"].keys()), key=f'model-{self.session_id}', disabled=settings["disabled"])
+                selected_model = st.selectbox("Modelo", options=sorted(list(settings["model_options"].keys())), key=f'model-{self.session_id}', disabled=settings["disabled"])
                 temperature = st.slider('Temperatura', 0.0, 2.0, settings["temperature_default"], key=f'temp-{self.session_id}', disabled=settings["disabled"])
                 max_tokens = st.slider('Max Tokens', 0, settings["model_options"][selected_model]["tokens"], settings["max_token_default"], key=f'tokens-{self.session_id}', disabled=settings["disabled"])
-                st.session_state.rag_enabled = st.toggle("RAG", value=st.session_state.rag_enabled, disabled=settings["disabled"])
+                st.session_state.rag_enabled = st.toggle("🔎 RAG", value=st.session_state.rag_enabled, disabled=settings["disabled"])
 
                 if st.session_state.rag_enabled:
                     st.markdown("##### 📁 Carregar Arquivo")
@@ -113,17 +123,8 @@ class App:
 
         if uploaded_file:
             if st.session_state.uploaded_file is None and st.session_state.retriever is None:
-                file_name = uploaded_file.name
-                file_path = f"/tmp/{file_name}"
-
-                with st.spinner(f'Processando Arquivo: {file_name}...'):
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-
-                    st.session_state.uploaded_file = file_path
-                    st.session_state.retriever = Document().load
-
-                    st.success(f"Arquivo processado.", icon='✅')
+                doc = Document()
+                st.session_state.retriever = doc.load(uploaded_file)
 
 def main():
     try:
@@ -149,15 +150,16 @@ def main():
                 thinking_process = None
                 final_response = msg.content
 
-            st.chat_message(msg.type).write(final_response)
-
             if thinking_process:
                 with st.expander("🤔 Veja o processo de pensamento"):
                     st.markdown(thinking_process)
 
+            st.chat_message(msg.type).markdown(final_response)
+
         if prompt := st.chat_input():
             st.chat_message('human').write(prompt)
             bot.bot_response(prompt)
+
 
     except Exception as e:
         raise e

@@ -89,8 +89,11 @@ class Chatbot:
                     "language": self.language,
                 } , config={"configurable": {"session_id": self.session_id } } )
 
-
                 thinking_process, final_response = thinkins_processing(response, 'rag')
+
+                if thinking_process:
+                    with st.expander("🤔 Veja o processo de pensamento"):
+                        st.markdown(thinking_process)
 
             response_container = st.chat_message("assistant")
             response_text = response_container.empty()
@@ -103,9 +106,6 @@ class Chatbot:
 
             response_text.markdown(assistant_message)
 
-            if thinking_process:
-                with st.expander("🤔 Veja o processo de pensamento"):
-                    st.markdown(thinking_process)
         else:
             response = chain.stream( {
                     "input": prompt,
@@ -151,6 +151,10 @@ class Chatbot:
 
                 thinking_process, final_response = thinkins_processing(response)
 
+                if thinking_process:
+                    with st.expander("🤔 Veja o processo de pensamento"):
+                        st.markdown(thinking_process)
+
             response_container = st.chat_message("assistant")
             response_text = response_container.empty()
             assistant_message = ''
@@ -162,9 +166,6 @@ class Chatbot:
 
             response_text.markdown(assistant_message)
 
-            if thinking_process:
-                with st.expander("🤔 Veja o processo de pensamento"):
-                    st.markdown(thinking_process)
         else:
             response = chain.stream( {
                         "input": prompt,

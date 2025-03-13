@@ -13,6 +13,8 @@ def init_sessions():
         st.session_state.retriever = None
     if "uploaded_file" not in st.session_state:
         st.session_state.uploaded_file = None
+    if "uploaded_file_type" not in st.session_state:
+        st.session_state.uploaded_file_type = None
     if 'rag_enabled' not in st.session_state:
         st.session_state.rag_enabled = False
     if 'db_connection' not in st.session_state:
@@ -87,3 +89,4 @@ def thinkins_processing(response, ctype:str=None) -> any:
         final_response = response.split(' ')
 
     return thinking_process, final_response
+
