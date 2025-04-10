@@ -36,7 +36,7 @@ def set_timestamp_session(sessions:list):
     return sorted(sessions, key=lambda s: st.session_state['timestamps'].get(s['session_id'], datetime.now()), reverse=True)
 
 def mask_text(text: str) -> str:
-    return text[:30] + "..." if len(text) > 30 else text
+    return ( text[:30].replace('\n',' ') + "..." ) if len(text) > 30 else text
 
 @st.cache_data
 def get_models() -> dict:

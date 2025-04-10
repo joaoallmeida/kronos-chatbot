@@ -9,3 +9,4 @@ pypdf>=5.1.0
 rapidocr-onnxruntime>=1.4.4
 qdrant-client>=1.13.3
 fastembed>=0.6.0
+pillow>=10.4.0
