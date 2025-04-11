@@ -17,6 +17,8 @@ def init_sessions():
         st.session_state.uploaded_file_type = None
     if 'rag_enabled' not in st.session_state:
         st.session_state.rag_enabled = False
+    if 'thinking_mode' not in st.session_state:
+        st.session_state.thinking_mode = False
     if 'db_connection' not in st.session_state:
         st.session_state.db_connection = None
 

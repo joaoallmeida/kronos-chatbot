@@ -19,7 +19,7 @@ For the project to work well, the following requirements are necessary:
 
 * **OS**: Windows or Linux (preferred)
 * **Minimum Memory**: 2 GB
-* **Minimum Storage**: 10 GB
+* **Minimum Storage**: 1 GB
 
 ### Dependencies
 

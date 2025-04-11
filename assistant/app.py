@@ -9,10 +9,11 @@ from utils import *
 import re
 
 class Document:
-
-    def load(self, file):
+    
+    def load(self):
         try:
 
+            file = st.session_state.uploaded_file
             file_path = f"/tmp/{file.name}"
             file_type = file.type.split('/')[1]
 
@@ -49,7 +50,6 @@ class Document:
             raise e
 
         return vector_stores.as_retriever(search_type="mmr", search_kwargs={"k": 5})
-
 
 class App:
     def __init__(self):
@@ -93,43 +93,44 @@ class App:
 
         with st.sidebar:
 
-            st.button('Nova Conversa', icon="➕", on_click=start_new_session, use_container_width=True)
-            if st.button("Deletar Conversa", icon="❌", on_click=self.conn.clear, use_container_width=True):
+            st.button('New Chat', icon="➕", on_click=start_new_session, use_container_width=True)
+            if st.button("Delete Chat", icon="❌", on_click=self.conn.clear, use_container_width=True):
                 st.rerun()
 
-            with st.popover('Configurações', icon='⚙️', use_container_width=True):
-                language_option = st.selectbox("Idioma", options=settings["language_options"], key=f'lang-{self.session_id}', disabled=settings["disabled"])
-                selected_model = st.selectbox("Modelo", options=sorted(list(settings["model_options"].keys())), key=f'model-{self.session_id}', disabled=settings["disabled"])
-                temperature = st.slider('Temperatura', 0.0, 2.0, settings["temperature_default"], key=f'temp-{self.session_id}', disabled=settings["disabled"])
+            with st.popover('Settings', icon='⚙️', use_container_width=True):
+                language_option = st.selectbox("Language", options=settings["language_options"], key=f'lang-{self.session_id}', disabled=settings["disabled"])
+                selected_model = st.selectbox("Model", options=sorted(list(settings["model_options"].keys())), key=f'model-{self.session_id}', disabled=settings["disabled"])
+                temperature = st.slider('Temperature', 0.0, 2.0, settings["temperature_default"], key=f'temp-{self.session_id}', disabled=settings["disabled"])
                 max_tokens = st.slider('Max Tokens', 0, settings["model_options"][selected_model]["tokens"], settings["max_token_default"], key=f'tokens-{self.session_id}', disabled=settings["disabled"])
-                st.session_state.rag_enabled = st.toggle("🔎 RAG", value=st.session_state.rag_enabled, disabled=settings["disabled"])
 
-                if st.session_state.rag_enabled:
-                    st.markdown("##### 📁 Carregar Arquivo")
-                    uploaded_file = st.file_uploader('Adicionar PDF', key=f"file-{self.session_id}", type=['pdf'])
+            st.subheader('', divider='gray')
+            st.session_state.thinking_mode = st.toggle('🤔 DeepThink', value=st.session_state.thinking_mode, disabled=False if 'DeepSeek' in settings["model_options"][selected_model]['developer'] else True)
+            st.session_state.rag_enabled = st.toggle("🔎 RAG", value=st.session_state.rag_enabled, disabled=settings['disabled'])
 
+            if st.session_state.rag_enabled:
+                st.session_state.uploaded_file = st.file_uploader('📁 Add PDF', type=['pdf'])
 
             st.session_state.session_options = {
                 'language': language_option,
                 'model': selected_model,
                 'max_tokens': max_tokens,
                 'temperature': temperature,
-                'developer': settings["model_options"][selected_model]['developer']
+                'developer': settings["model_options"][selected_model]['developer'],
+                'disabled': settings["disabled"],
             }
 
             st.markdown('###')
-            st.subheader('Recentes', divider='gray')
+            st.subheader('Previous Chats', divider='gray')
             self.display_previous_sessions()
 
-        if uploaded_file:
-            if st.session_state.uploaded_file is None and st.session_state.retriever is None:
-                doc = Document()
-                st.session_state.retriever = doc.load(uploaded_file)
+        if st.session_state.uploaded_file is not None and st.session_state.retriever is None:
+            doc = Document()
+            st.session_state.retriever = doc.load()
 
 def main():
     try:
         st.set_page_config(page_title='AI Chatbot', page_icon='💬')
-        st.markdown('<h1><img src="https://img.icons8.com/fluency/50/chatbot--v1.png" alt="Kronos - AI Assistant" style="vertical-align: middle;padding: 0 0 5px 0 ;"> Kronos - AI Assistant</h1>', unsafe_allow_html=True)
+        st.markdown('<h1 style="text-align:center"><img src="https://img.icons8.com/fluency/50/chatbot--v1.png" alt="Kronos - AI Assistant" style="vertical-align: middle;padding: 0 0 5px 0 ;"> Kronos - AI Assistant</h1>', unsafe_allow_html=True)
         st.header("", divider='rainbow', anchor=False)
 
         init_sessions()
@@ -150,16 +151,16 @@ def main():
                 thinking_process = None
                 final_response = msg.content
 
-            if thinking_process:
-                with st.expander("🤔 Veja o processo de pensamento"):
-                    st.markdown(thinking_process)
+            if st.session_state.thinking_mode:
+                if thinking_process:
+                    with st.expander("🤔 Veja o processo de pensamento"):
+                        st.markdown(thinking_process)
 
             st.chat_message(msg.type).markdown(final_response)
 
         if prompt := st.chat_input():
             st.chat_message('human').write(prompt)
             bot.bot_response(prompt)
-
 
     except Exception as e:
         raise e
