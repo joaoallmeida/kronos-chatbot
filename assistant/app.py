@@ -1,55 +1,8 @@
-from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.document_loaders.parsers import RapidOCRBlobParser
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_qdrant.vectorstores import Qdrant
 from chatdb import ChatDbMessages
 from chatbot import Chatbot
+from doc_loaders import Document
 from utils import *
 import re
-
-class Document:
-    
-    def load(self):
-        try:
-
-            file = st.session_state.uploaded_file
-            file_path = f"/tmp/{file.name}"
-            file_type = file.type.split('/')[1]
-
-            with st.spinner(f'Processando Arquivo: {file.name}...'):
-                with open(file_path, "wb") as f:
-                    f.write(file.getbuffer())
-
-                loader = PyPDFLoader(
-                    file_path,
-                    mode='page',
-                    extract_images=True,
-                    images_inner_format="text",
-                    images_parser=RapidOCRBlobParser()
-                )
-                documents =  loader.load()
-
-                # Add source metadata
-                for doc in documents:
-                    doc.metadata.update({
-                        "source_type": file_type,
-                        "file_name": file.name,
-                        "timestamp": datetime.now().isoformat()
-                    })
-
-                text_splitter = RecursiveCharacterTextSplitter( chunk_size=2048, chunk_overlap=128 )
-                docs = text_splitter.split_documents(documents)
-
-                embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
-                vector_stores = Qdrant.from_documents(docs, embeddings, location=":memory:", collection_name="document_embeddings")
-
-                st.success(f"Arquivo processado", icon='✅')
-
-        except Exception as e:
-            raise e
-
-        return vector_stores.as_retriever(search_type="mmr", search_kwargs={"k": 5})
 
 class App:
     def __init__(self):
@@ -88,7 +41,6 @@ class App:
 
     def options(self) -> str:
 
-        uploaded_file = False
         settings = get_default_settings(self.conn.messages)
 
         with st.sidebar:
@@ -104,11 +56,11 @@ class App:
                 max_tokens = st.slider('Max Tokens', 0, settings["model_options"][selected_model]["tokens"], settings["max_token_default"], key=f'tokens-{self.session_id}', disabled=settings["disabled"])
 
             st.subheader('', divider='gray')
-            st.session_state.thinking_mode = st.toggle('🤔 DeepThink', value=st.session_state.thinking_mode, disabled=False if 'DeepSeek' in settings["model_options"][selected_model]['developer'] else True)
             st.session_state.rag_enabled = st.toggle("🔎 RAG", value=st.session_state.rag_enabled, disabled=settings['disabled'])
 
             if st.session_state.rag_enabled:
-                st.session_state.uploaded_file = st.file_uploader('📁 Add PDF', type=['pdf'])
+                st.session_state.uploaded_file = st.file_uploader('📁 Add File', type=['pdf'])
+                st.session_state.threshold = st.slider('Threshold', 0.0 , 1.0, 0.7, key=f'thres-{self.session_id}', disabled=settings['disabled'])
 
             st.session_state.session_options = {
                 'language': language_option,
@@ -125,7 +77,7 @@ class App:
 
         if st.session_state.uploaded_file is not None and st.session_state.retriever is None:
             doc = Document()
-            st.session_state.retriever = doc.load()
+            st.session_state.retriever = doc.pdf_load()
 
 def main():
     try:
@@ -138,6 +90,9 @@ def main():
 
         app = App()
         bot = Chatbot()
+
+        if 'DeepSeek' in st.session_state.session_options['developer']:
+            st.session_state.thinking_mode = st.toggle('💡DeepThink', value=st.session_state.thinking_mode)
 
         for msg in st.session_state.db_connection.messages:
 
@@ -153,7 +108,7 @@ def main():
 
             if st.session_state.thinking_mode:
                 if thinking_process:
-                    with st.expander("🤔 Veja o processo de pensamento"):
+                    with st.expander("🤔 See the thinking process"):
                         st.markdown(thinking_process)
 
             st.chat_message(msg.type).markdown(final_response)

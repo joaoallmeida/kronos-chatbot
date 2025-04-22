@@ -21,6 +21,8 @@ def init_sessions():
         st.session_state.thinking_mode = False
     if 'db_connection' not in st.session_state:
         st.session_state.db_connection = None
+    if 'threshold' not in st.session_state:
+        st.session_state.threshold = None
 
 def start_new_session():
     for key in st.session_state.keys():
