@@ -1,5 +1,5 @@
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_community.document_loaders.parsers import RapidOCRBlobParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_qdrant.vectorstores import Qdrant
@@ -18,11 +18,11 @@ class Document:
                 with open(file_path, "wb") as f:
                     f.write(file.getbuffer())
 
-                loader = PyPDFLoader(
+                loader = PyMuPDFLoader(
                     file_path,
                     mode='page',
                     extract_images=True,
-                    images_inner_format="text",
+                    images_inner_format="markdown-img",
                     images_parser=RapidOCRBlobParser(),
                 )
                 documents =  loader.load()
@@ -42,8 +42,6 @@ class Document:
                 vector_stores = Qdrant.from_documents(docs, embeddings, location=":memory:", collection_name="document_embeddings")
 
                 st.success(f"Arquivo processado", icon='✅')
-
-                print(docs)
 
         except Exception as e:
             raise e

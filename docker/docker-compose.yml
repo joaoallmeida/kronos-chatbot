@@ -23,7 +23,7 @@ services:
     image: chatbot:latest
     container_name: chatbot
     environment:
-      GROQ_API_KEY: <your_api_key>
+      GROQ_API_KEY: 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
     depends_on:
       - mongodb
     restart: unless-stopped

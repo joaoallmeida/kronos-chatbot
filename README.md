@@ -18,8 +18,8 @@ For the project to work well, the following requirements are necessary:
 ### Minimum System Requirements
 
 * **OS**: Windows or Linux (preferred)
-* **Minimum Memory**: 2 GB
-* **Minimum Storage**: 1 GB
+* **Minimum Memory**: 4 GB
+* **Minimum Storage**: 5 GB
 
 ### Dependencies
 

@@ -1,16 +1,16 @@
-from chatdb import ChatDbMessages
-from chatbot import Chatbot
-from doc_loaders import Document
-from utils import *
+from chatdb_test import ChatDbMessages
+from chatbot_test import Chatbot
+from doc_loaders_test import Document
+from utils_test import *
 import re
 
-class App:
+class Assistant:
     def __init__(self):
         self.session_id = st.session_state.session_id
         self.conn = st.session_state.db_connection
-        self.options()
+        self.__sidebar_options__()
 
-    def create_session_button(self, session_id, options, label):
+    def __create_session_button__(self, session_id, options, label):
         # Verifica se a sessão é ativa para desabilitar o botão correspondente
         disabled = (st.session_state.get("session_id") == session_id)
         st.button(
@@ -22,7 +22,7 @@ class App:
             use_container_width=True
         )
 
-    def display_previous_sessions(self):
+    def __display_previous_sessions__(self):
         try:
             sessions = self.conn.get_previus_sessions()  # Obtem IDs das sessões
             sessions_ord = set_timestamp_session(sessions)  # Ordena por timestamp
@@ -34,12 +34,12 @@ class App:
 
                 if result:
                     label = mask_text(result[0].content)
-                    self.create_session_button(session_id, options, label)
+                    self.__create_session_button__(session_id, options, label)
 
         except Exception as e:
             raise e
 
-    def options(self) -> str:
+    def __sidebar_options__(self) -> str:
 
         settings = get_default_settings(self.conn.messages)
 
@@ -73,7 +73,7 @@ class App:
 
             st.markdown('###')
             st.subheader('Previous Chats', divider='gray')
-            self.display_previous_sessions()
+            self.__display_previous_sessions__()
 
         if st.session_state.uploaded_file is not None and st.session_state.retriever is None:
             doc = Document()
@@ -85,10 +85,9 @@ def main():
         st.markdown('<h1 style="text-align:center"><img src="https://img.icons8.com/fluency/50/chatbot--v1.png" alt="Kronos - AI Assistant" style="vertical-align: middle;padding: 0 0 5px 0 ;"> Kronos - AI Assistant</h1>', unsafe_allow_html=True)
         st.header("", divider='rainbow', anchor=False)
 
-        init_sessions()
+        init = init_sessions()
         st.session_state.db_connection = ChatDbMessages()
-
-        app = App()
+        att = Assistant()
         bot = Chatbot()
 
         if 'DeepSeek' in st.session_state.session_options['developer']:
