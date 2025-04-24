@@ -71,7 +71,6 @@ class Chatbot:
                     "language": self.language,
                 } , config={"configurable": {"session_id": self.session_id } } )
 
-
                 thinking_process, final_response = thinkins_processing(response, 'rag')
 
                 if st.session_state.thinking_mode:

@@ -5,8 +5,8 @@ langchain-groq>=0.2.0
 langchain-qdrant>=0.2.0
 streamlit==1.39.0
 pymongo==4.10.1
-pypdf>=5.1.0
 rapidocr-onnxruntime>=1.4.4
 qdrant-client>=1.13.3
 fastembed>=0.6.0
 pillow>=10.4.0
+pymupdf>=1.25.5
